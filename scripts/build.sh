@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Comfort Movie - Build Script
+
+set -e
+
+echo "=== Comfort Movie - Build ==="
+echo ""
+
+echo "🔨 Building TypeScript project..."
+npm run build
+
+if [ $? -ne 0 ]; then
+    echo "❌ Build failed"
+    exit 1
+fi
+
+echo "✅ Build completed successfully"
+echo ""
+echo "🎉 Build process finished!"
