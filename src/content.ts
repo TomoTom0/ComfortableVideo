@@ -23,8 +23,8 @@ let youtubeControlButton: HTMLElement | null = null;
 // Amazon Prime Video用コントロールボタンの要素
 let primeControlButton: HTMLElement | null = null;
 
-// YouTube親要素の元のz-indexを保存するMap
-let originalParentZIndex: Map<HTMLElement, string> = new Map();
+// YouTube親要素の元のz-indexを保存するMap（nullは元々inline styleがなかったことを示す）
+let originalParentZIndex: Map<HTMLElement, string | null> = new Map();
 
 // z-index制御用のスタイル要素
 let zIndexStyle: HTMLStyleElement | null = null;
@@ -384,9 +384,9 @@ function enableComfortMode(): void {
   if (isYouTube()) {
     const ytdApp = document.querySelector('ytd-app') as HTMLElement;
     if (ytdApp) {
-      // 元のz-indexを保存
-      const currentZIndex = window.getComputedStyle(ytdApp).zIndex;
-      originalParentZIndex.set(ytdApp, currentZIndex);
+      // 元のinline styleのz-indexを保存（なければnull）
+      const currentInlineZIndex = ytdApp.style.zIndex || null;
+      originalParentZIndex.set(ytdApp, currentInlineZIndex);
       ytdApp.style.setProperty('z-index', 'auto', 'important');
     }
     // 他の親要素も調整
@@ -406,9 +406,9 @@ function enableComfortMode(): void {
     parentSelectors.forEach(selector => {
       const el = document.querySelector(selector) as HTMLElement;
       if (el) {
-        // 元のz-indexを保存
-        const currentZIndex = window.getComputedStyle(el).zIndex;
-        originalParentZIndex.set(el, currentZIndex);
+        // 元のinline styleのz-indexを保存（なければnull）
+        const currentInlineZIndex = el.style.zIndex || null;
+        originalParentZIndex.set(el, currentInlineZIndex);
         el.style.setProperty('z-index', 'auto', 'important');
       }
     });
@@ -604,11 +604,13 @@ function removeZIndexControl(): void {
   });
 
   // YouTube親要素のz-indexを復元
-  originalParentZIndex.forEach((originalZIndex, element) => {
-    if (originalZIndex === 'auto') {
+  originalParentZIndex.forEach((originalInlineZIndex, element) => {
+    if (originalInlineZIndex === null) {
+      // 元々inline styleがなかった場合は削除
       element.style.removeProperty('z-index');
     } else {
-      element.style.setProperty('z-index', originalZIndex, 'important');
+      // 元々inline styleがあった場合は復元
+      element.style.setProperty('z-index', originalInlineZIndex);
     }
   });
   originalParentZIndex.clear();
