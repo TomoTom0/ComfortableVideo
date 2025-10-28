@@ -1,12 +1,12 @@
 {
   "extensionName": {
-    "message": "Comfort Movie"
+    "message": "Comfortable Video"
   },
   "extensionDescription": {
     "message": "Chrome extension for comfortable video viewing. Maximizes videos and provides smart control features for focused viewing."
   },
   "contextMenuToggle": {
-    "message": "Toggle Comfort Movie Mode"
+    "message": "Toggle Comfortable Video Mode"
   },
   "contextMenuVideoToggle": {
     "message": "🎬 Display this video in comfort mode"
@@ -45,7 +45,7 @@
     "message": "Show button in video player"
   },
   "showInlineButtonDesc": {
-    "message": "Display Comfort Movie button in player controls on YouTube, Amazon Prime Video, etc."
+    "message": "Display Comfortable Video button in player controls on YouTube, Amazon Prime Video, etc."
   },
   "pausedControlsEnabled": {
     "message": "Always enable controls when video is paused"
@@ -57,7 +57,7 @@
     "message": "Show context menu"
   },
   "showContextMenuDesc": {
-    "message": "Display Comfort Movie menu when right-clicking on pages or videos"
+    "message": "Display Comfortable Video menu when right-clicking on pages or videos"
   },
   "showVideoContextMenu": {
     "message": "Show video-specific menu"
@@ -69,7 +69,7 @@
     "message": "Enabled Sites"
   },
   "enabledSitesDesc": {
-    "message": "Select sites where Comfort Movie should be enabled"
+    "message": "Select sites where Comfortable Video should be enabled"
   },
   "enableYoutube": {
     "message": "YouTube"
@@ -93,7 +93,7 @@
     "message": "Reset to Default"
   },
   "version": {
-    "message": "Comfort Movie v1.0.0"
+    "message": "Comfortable Video v1.0.0"
   },
   "subtitle": {
     "message": "Chrome extension for comfortable video viewing"
@@ -108,10 +108,10 @@
     "message": "Toggle via toolbar icon"
   },
   "comfortModeTooltip": {
-    "message": "Comfort Movie Mode"
+    "message": "Comfortable Video Mode"
   },
   "comfortModeTooltipOn": {
-    "message": "Comfort Movie Mode (On)"
+    "message": "Comfortable Video Mode (On)"
   },
   "comfortModeExitTooltip": {
     "message": "Exit Comfort Mode"

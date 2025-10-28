@@ -1,6 +1,6 @@
 {
   "extensionName": {
-    "message": "Comfort Movie"
+    "message": "Comfortable Video"
   },
   "extensionDescription": {
     "message": "为舒适的视频观看提供Chrome扩展。最大化视频并提供智能控制功能，让您专注观看。"
@@ -45,7 +45,7 @@
     "message": "在视频播放器中显示按钮"
   },
   "showInlineButtonDesc": {
-    "message": "在YouTube、Amazon Prime Video等播放器控件中显示Comfort Movie按钮"
+    "message": "在YouTube、Amazon Prime Video等播放器控件中显示Comfortable Video按钮"
   },
   "pausedControlsEnabled": {
     "message": "视频暂停时始终启用控件"
@@ -57,7 +57,7 @@
     "message": "显示右键菜单"
   },
   "showContextMenuDesc": {
-    "message": "右键点击页面或视频时显示Comfort Movie菜单"
+    "message": "右键点击页面或视频时显示Comfortable Video菜单"
   },
   "showVideoContextMenu": {
     "message": "显示视频专用菜单"
@@ -69,7 +69,7 @@
     "message": "启用的网站"
   },
   "enabledSitesDesc": {
-    "message": "选择应启用Comfort Movie的网站"
+    "message": "选择应启用Comfortable Video的网站"
   },
   "enableYoutube": {
     "message": "YouTube"
@@ -93,7 +93,7 @@
     "message": "重置为默认"
   },
   "version": {
-    "message": "Comfort Movie v1.0.0"
+    "message": "Comfortable Video v1.0.0"
   },
   "subtitle": {
     "message": "为舒适的视频观看提供Chrome扩展"

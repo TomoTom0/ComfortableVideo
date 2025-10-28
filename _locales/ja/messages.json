@@ -1,6 +1,6 @@
 {
   "extensionName": {
-    "message": "Comfort Movie"
+    "message": "Comfortable Video"
   },
   "extensionDescription": {
     "message": "快適な動画視聴環境を提供するChrome拡張機能。動画を最大化し、スマートなコントロール機能で集中して視聴できます。"
@@ -45,7 +45,7 @@
     "message": "動画プレーヤー内にボタンを表示"
   },
   "showInlineButtonDesc": {
-    "message": "YouTubeやAmazon Prime VideoなどでプレーヤーコントロールにComfort Movieボタンを表示"
+    "message": "YouTubeやAmazon Prime VideoなどでプレーヤーコントロールにComfortable Videoボタンを表示"
   },
   "pausedControlsEnabled": {
     "message": "動画停止中は常にコントロール有効"
@@ -57,7 +57,7 @@
     "message": "右クリックメニューを表示"
   },
   "showContextMenuDesc": {
-    "message": "ページや動画を右クリックした時にComfort Movieのメニューを表示"
+    "message": "ページや動画を右クリックした時にComfortable Videoのメニューを表示"
   },
   "showVideoContextMenu": {
     "message": "動画専用メニューを表示"
@@ -69,7 +69,7 @@
     "message": "有効なサイト"
   },
   "enabledSitesDesc": {
-    "message": "Comfort Movieを有効にするサイトを選択"
+    "message": "Comfortable Videoを有効にするサイトを選択"
   },
   "enableYoutube": {
     "message": "YouTube"
@@ -93,7 +93,7 @@
     "message": "デフォルトに戻す"
   },
   "version": {
-    "message": "Comfort Movie v1.0.0"
+    "message": "Comfortable Video v1.0.0"
   },
   "subtitle": {
     "message": "快適な動画視聴環境を提供するChrome拡張機能"
