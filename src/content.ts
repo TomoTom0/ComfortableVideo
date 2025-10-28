@@ -27,8 +27,8 @@ let primeControlButton: HTMLElement | null = null;
 let zIndexStyle: HTMLStyleElement | null = null;
 
 // カーソル検出用の変数
-let cursorTimer: number | null = null;
-let controlsDisableTimer: number | null = null;
+let cursorTimer: ReturnType<typeof setTimeout> | null = null;
+let controlsDisableTimer: ReturnType<typeof setTimeout> | null = null;
 let isVideoControlsEnabled = false;
 let lastIsInVideoArea = false; // 前回の動画エリア状態を記録
 const HOVER_DETECTION_TIME = 2000; // 2秒間カーソルが下部にあると検出
@@ -325,10 +325,17 @@ function enableComfortMode(): void {
       // 動画にクラスを追加
       video.classList.add('comfort-mode-video');
 
-      // 動画のコンテナ要素（親要素）にもクラスを追加
+      // 動画の親要素のz-indexも最大値に設定（スタッキングコンテキスト対策）
       let parent = video.parentElement;
-      if (parent) {
-        parent.classList.add('comfort-mode-video-container');
+      while (parent && parent !== document.body) {
+        const parentStyle = window.getComputedStyle(parent);
+        // position が static でない場合、スタッキングコンテキストを作成している
+        if (parentStyle.position !== 'static') {
+          parent.style.setProperty('z-index', '2147483647', 'important');
+          parent.classList.add('comfort-mode-video-container');
+          break; // 最初の positioned な親だけ処理
+        }
+        parent = parent.parentElement;
       }
     }
   });
@@ -379,16 +386,31 @@ function maximizeVideo(video: HTMLVideoElement): void {
     offsetX = (windowWidth - newWidth) / 2;
   }
 
-  // スタイルを適用（z-indexはCSSクラスで制御）
-  video.style.cssText += `
-    position: fixed !important;
-    top: ${offsetY}px !important;
-    left: ${offsetX}px !important;
-    width: ${newWidth}px !important;
-    height: ${newHeight}px !important;
-    object-fit: fill !important;
-    transform: none !important;
-  `;
+  // YouTubeの場合は#movie_playerを拡大
+  if (isYouTube()) {
+    const player = document.getElementById('movie_player');
+    if (player) {
+      player.style.cssText = `
+        position: fixed !important;
+        top: ${offsetY}px !important;
+        left: ${offsetX}px !important;
+        width: ${newWidth}px !important;
+        height: ${newHeight}px !important;
+        z-index: 2147483647 !important;
+      `;
+    }
+  } else {
+    // 他のサイトでは動画要素を直接拡大
+    video.style.cssText += `
+      position: fixed !important;
+      top: ${offsetY}px !important;
+      left: ${offsetX}px !important;
+      width: ${newWidth}px !important;
+      height: ${newHeight}px !important;
+      object-fit: fill !important;
+      transform: none !important;
+    `;
+  }
 }
 
 // マウスイベントを無効化する関数（改良版）
@@ -409,6 +431,22 @@ function disableMouseEvents(): void {
 
 // z-index制御を適用する関数
 function applyZIndexControl(): void {
+  // 黒いオーバーレイを作成（画面全体を覆う）
+  const overlay = document.createElement('div');
+  overlay.id = 'comfort-mode-overlay';
+  overlay.style.cssText = `
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: black !important;
+    z-index: 2147483646 !important;
+    pointer-events: none !important;
+  `;
+  document.body.appendChild(overlay);
+
+  // 動画とその親要素のz-indexを設定
   zIndexStyle = document.createElement('style');
   zIndexStyle.id = 'comfort-mode-zindex-control';
   zIndexStyle.textContent = `
@@ -417,12 +455,12 @@ function applyZIndexControl(): void {
       z-index: 2147483647 !important;
     }
 
-    /* 他の要素のz-indexを制限 */
-    body.comfort-mode-active *:not(.comfort-mode-video):not(#comfort-mode-exit-button) {
-      z-index: 999998 !important;
+    /* 動画の親コンテナも最前面に */
+    .comfort-mode-video-container {
+      z-index: 2147483647 !important;
     }
 
-    /* 解除ボタンを動画より上に */
+    /* 解除ボタンを最前面に */
     #comfort-mode-exit-button {
       z-index: 2147483648 !important;
     }
@@ -435,10 +473,24 @@ function applyZIndexControl(): void {
 
 // z-index制御を解除する関数
 function removeZIndexControl(): void {
+  // オーバーレイを削除
+  const overlay = document.getElementById('comfort-mode-overlay');
+  if (overlay) {
+    overlay.remove();
+  }
+
   if (zIndexStyle) {
     zIndexStyle.remove();
     zIndexStyle = null;
   }
+
+  // 親要素のz-indexを復元
+  const containers = document.querySelectorAll('.comfort-mode-video-container');
+  containers.forEach(container => {
+    const htmlEl = container as HTMLElement;
+    htmlEl.style.removeProperty('z-index');
+    htmlEl.classList.remove('comfort-mode-video-container');
+  });
 
   // body要素からクラスを削除
   document.body.classList.remove('comfort-mode-active');
