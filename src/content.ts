@@ -1,7 +1,7 @@
 // 快適モードの状態管理
 let isComfortModeActive = false;
 let currentActiveVideo: HTMLVideoElement | null = null; // 現在快適モードで使用中の動画要素
-let originalVideoStyles: Map<HTMLVideoElement, {
+let originalVideoStyles: Map<HTMLVideoElement | HTMLElement, {
   position: string;
   top: string;
   left: string;
@@ -22,6 +22,9 @@ let youtubeControlButton: HTMLElement | null = null;
 
 // Amazon Prime Video用コントロールボタンの要素
 let primeControlButton: HTMLElement | null = null;
+
+// YouTube親要素の元のz-indexを保存するMap
+let originalParentZIndex: Map<HTMLElement, string> = new Map();
 
 // z-index制御用のスタイル要素
 let zIndexStyle: HTMLStyleElement | null = null;
@@ -381,6 +384,9 @@ function enableComfortMode(): void {
   if (isYouTube()) {
     const ytdApp = document.querySelector('ytd-app') as HTMLElement;
     if (ytdApp) {
+      // 元のz-indexを保存
+      const currentZIndex = window.getComputedStyle(ytdApp).zIndex;
+      originalParentZIndex.set(ytdApp, currentZIndex);
       ytdApp.style.setProperty('z-index', 'auto', 'important');
     }
     // 他の親要素も調整
@@ -400,6 +406,9 @@ function enableComfortMode(): void {
     parentSelectors.forEach(selector => {
       const el = document.querySelector(selector) as HTMLElement;
       if (el) {
+        // 元のz-indexを保存
+        const currentZIndex = window.getComputedStyle(el).zIndex;
+        originalParentZIndex.set(el, currentZIndex);
         el.style.setProperty('z-index', 'auto', 'important');
       }
     });
@@ -593,6 +602,16 @@ function removeZIndexControl(): void {
     htmlEl.style.removeProperty('z-index');
     htmlEl.classList.remove('comfort-mode-video-container');
   });
+
+  // YouTube親要素のz-indexを復元
+  originalParentZIndex.forEach((originalZIndex, element) => {
+    if (originalZIndex === 'auto') {
+      element.style.removeProperty('z-index');
+    } else {
+      element.style.setProperty('z-index', originalZIndex, 'important');
+    }
+  });
+  originalParentZIndex.clear();
 
   // body要素からクラスを削除
   document.body.classList.remove('comfort-mode-active');
