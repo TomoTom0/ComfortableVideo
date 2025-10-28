@@ -26,3 +26,8 @@ Thumbs.db
 *.tmp
 *.log
 tmp/
+# Test files
+test-*.js
+check-*.js
+debug-*.js
+*.png
