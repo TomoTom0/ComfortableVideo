@@ -325,17 +325,33 @@ function enableComfortMode(): void {
       // 動画にクラスを追加
       video.classList.add('comfort-mode-video');
 
-      // 動画の親要素のz-indexも最大値に設定（スタッキングコンテキスト対策）
-      let parent = video.parentElement;
-      while (parent && parent !== document.body) {
-        const parentStyle = window.getComputedStyle(parent);
-        // position が static でない場合、スタッキングコンテキストを作成している
-        if (parentStyle.position !== 'static') {
-          parent.style.setProperty('z-index', '2147483647', 'important');
-          parent.classList.add('comfort-mode-video-container');
-          break; // 最初の positioned な親だけ処理
+      // YouTubeの場合は#movie_playerの親要素のz-indexも設定
+      if (isYouTube()) {
+        const player = document.getElementById('movie_player');
+        if (player) {
+          let parent = player.parentElement;
+          while (parent && parent !== document.body) {
+            const parentStyle = window.getComputedStyle(parent);
+            if (parentStyle.position !== 'static') {
+              parent.style.setProperty('z-index', '2147483647', 'important');
+              parent.classList.add('comfort-mode-video-container');
+              break;
+            }
+            parent = parent.parentElement;
+          }
         }
-        parent = parent.parentElement;
+      } else {
+        // 他のサイトでは動画の親要素のz-indexを設定
+        let parent = video.parentElement;
+        while (parent && parent !== document.body) {
+          const parentStyle = window.getComputedStyle(parent);
+          if (parentStyle.position !== 'static') {
+            parent.style.setProperty('z-index', '2147483647', 'important');
+            parent.classList.add('comfort-mode-video-container');
+            break;
+          }
+          parent = parent.parentElement;
+        }
       }
     }
   });
@@ -360,6 +376,34 @@ function enableComfortMode(): void {
 
   // Prime Videoボタンの状態を更新
   updatePrimeButtonState();
+  
+  // YouTube特有の親要素のz-indexを調整
+  if (isYouTube()) {
+    const ytdApp = document.querySelector('ytd-app') as HTMLElement;
+    if (ytdApp) {
+      ytdApp.style.setProperty('z-index', 'auto', 'important');
+    }
+    // 他の親要素も調整
+    const parentSelectors = [
+      '#player-container-inner',
+      '#player-container-outer',
+      '#player',
+      '#primary-inner',
+      '#primary',
+      '#columns',
+      'ytd-watch-flexy',
+      'ytd-page-manager',
+      '#content',
+      'ytd-player',
+      '#container'
+    ];
+    parentSelectors.forEach(selector => {
+      const el = document.querySelector(selector) as HTMLElement;
+      if (el) {
+        el.style.setProperty('z-index', 'auto', 'important');
+      }
+    });
+  }
 }
 
 // 動画を画面いっぱいに最大化する関数
@@ -390,6 +434,18 @@ function maximizeVideo(video: HTMLVideoElement): void {
   if (isYouTube()) {
     const player = document.getElementById('movie_player');
     if (player) {
+      // 元のスタイルを保存
+      const computedStyle = window.getComputedStyle(player);
+      originalVideoStyles.set(player as any, {
+        position: computedStyle.position,
+        top: computedStyle.top,
+        left: computedStyle.left,
+        width: computedStyle.width,
+        height: computedStyle.height,
+        zIndex: computedStyle.zIndex,
+        transform: computedStyle.transform
+      });
+      
       player.style.cssText = `
         position: fixed !important;
         top: ${offsetY}px !important;
@@ -398,6 +454,24 @@ function maximizeVideo(video: HTMLVideoElement): void {
         height: ${newHeight}px !important;
         z-index: 2147483647 !important;
       `;
+      player.classList.add('comfort-mode-video-container');
+      
+      // YouTubeのvideo要素も調整
+      video.style.cssText += `
+        position: static !important;
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: contain !important;
+        transform: none !important;
+        top: auto !important;
+        left: auto !important;
+      `;
+      
+      // .html5-video-containerのz-indexも調整
+      const videoContainer = player.querySelector('.html5-video-container') as HTMLElement;
+      if (videoContainer) {
+        videoContainer.style.setProperty('z-index', '2147483647', 'important');
+      }
     }
   } else {
     // 他のサイトでは動画要素を直接拡大
@@ -418,11 +492,29 @@ function disableMouseEvents(): void {
   const style = document.createElement('style');
   style.id = 'comfort-mode-style';
   style.textContent = `
+    /* 動画コンテナとその子要素を最前面に */
+    body.comfort-mode-active .comfort-mode-video-container,
+    body.comfort-mode-active .comfort-mode-video-container * {
+      z-index: 2147483647 !important;
+    }
     /* コントロール無効時のみpointer-eventsを無効化 */
-    body.comfort-mode-active:not(.video-controls-enabled) * {
+    body.comfort-mode-active:not(.video-controls-enabled) *:not(.comfort-mode-video-container):not(.comfort-mode-video-container *) {
       pointer-events: none !important;
     }
     body.comfort-mode-active #comfort-mode-exit-button {
+      pointer-events: auto !important;
+    }
+    body.comfort-mode-active .comfort-mode-video-container,
+    body.comfort-mode-active .comfort-mode-video-container * {
+      pointer-events: auto !important;
+    }
+    /* コントロール無効時は動画コンテナ内も無効化 */
+    body.comfort-mode-active:not(.video-controls-enabled) .comfort-mode-video-container,
+    body.comfort-mode-active:not(.video-controls-enabled) .comfort-mode-video-container * {
+      pointer-events: none !important;
+    }
+    /* 動画要素自体は常にpointer-eventsを有効に */
+    body.comfort-mode-active video {
       pointer-events: auto !important;
     }
   `;
@@ -441,25 +533,16 @@ function applyZIndexControl(): void {
     width: 100vw !important;
     height: 100vh !important;
     background: black !important;
-    z-index: 2147483646 !important;
+    z-index: 1000000 !important;
     pointer-events: none !important;
   `;
-  document.body.appendChild(overlay);
+  // 最初の子として挿入（すべての要素より前に）
+  document.body.insertBefore(overlay, document.body.firstChild);
 
-  // 動画とその親要素のz-indexを設定
+  // 解除ボタンのz-indexを設定
   zIndexStyle = document.createElement('style');
   zIndexStyle.id = 'comfort-mode-zindex-control';
   zIndexStyle.textContent = `
-    /* 動画を最前面に */
-    .comfort-mode-video {
-      z-index: 2147483647 !important;
-    }
-
-    /* 動画の親コンテナも最前面に */
-    .comfort-mode-video-container {
-      z-index: 2147483647 !important;
-    }
-
     /* 解除ボタンを最前面に */
     #comfort-mode-exit-button {
       z-index: 2147483648 !important;
@@ -482,6 +565,25 @@ function removeZIndexControl(): void {
   if (zIndexStyle) {
     zIndexStyle.remove();
     zIndexStyle = null;
+  }
+
+  // YouTubeの#movie_playerのスタイルを復元
+  if (isYouTube()) {
+    const player = document.getElementById('movie_player');
+    if (player) {
+      const originalStyle = originalVideoStyles.get(player as any);
+      if (originalStyle) {
+        player.style.position = originalStyle.position;
+        player.style.top = originalStyle.top;
+        player.style.left = originalStyle.left;
+        player.style.width = originalStyle.width;
+        player.style.height = originalStyle.height;
+        player.style.zIndex = originalStyle.zIndex;
+        player.style.transform = originalStyle.transform;
+        originalVideoStyles.delete(player as any);
+      }
+      player.classList.remove('comfort-mode-video-container');
+    }
   }
 
   // 親要素のz-indexを復元
