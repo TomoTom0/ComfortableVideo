@@ -1048,6 +1048,15 @@ function disableComfortMode(): void {
     style.remove();
   }
 
+  // YouTubeのコントロールを再表示させる
+  if (isYouTube()) {
+    const player = document.getElementById('movie_player');
+    if (player) {
+      // マウスイベントを発火させてコントロールを表示
+      player.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
+    }
+  }
+
   // 解除ボタンを削除
   if (exitButton) {
     exitButton.remove();
