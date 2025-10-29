@@ -28,3 +28,8 @@ cd ..
 echo "✅ Extension package created: build/comfort-movie-extension.zip"
 echo ""
 echo "🎉 Package process finished!"
+
+# Ensure public assets are included in dist before packaging
+echo "📋 Copying static public assets into dist/ for packaging"
+mkdir -p dist
+rsync -a --delete public/ dist/ || cp -r public/. dist/ || true

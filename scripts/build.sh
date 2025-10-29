@@ -17,4 +17,8 @@ fi
 
 echo "✅ Build completed successfully"
 echo ""
+echo "📋 Copying static public assets into dist/"
+mkdir -p dist
+rsync -a --delete public/ dist/ || cp -r public/. dist/ || true
+
 echo "🎉 Build process finished!"

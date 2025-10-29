@@ -36,6 +36,10 @@ fi
 echo "📦 Deploying to: $DEPLOY_DESTINATION"
 
 # rsync実行
+echo "📋 Copying static public assets into dist/ before deploy"
+mkdir -p dist
+rsync -a --delete public/ dist/ || cp -r public/. dist/ || true
+
 rsync -av --delete dist/ "$DEPLOY_DESTINATION"
 
 if [ $? -ne 0 ]; then
