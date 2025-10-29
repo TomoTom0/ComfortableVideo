@@ -1,6 +1,6 @@
-# Comfort Movie 使用方法
+# Comfortable Video 使用方法
 
-Comfort Movieは、ウェブ上の動画を快適に視聴するためのChrome拡張機能です。
+Comfortable Videoは、ウェブ上の動画を快適に視聴するためのChrome拡張機能です。
 
 ## 主な機能
 
@@ -22,7 +22,7 @@ Comfort Movieは、ウェブ上の動画を快適に視聴するためのChrome�
 2. 「快適動画モードを切り替え」を選択
 
 **方法2: 拡張機能アイコン**
-1. Chromeツールバーの「Comfort Movie」アイコンをクリック
+1. Chromeツールバーの「Comfortable Video」アイコンをクリック
 
 ### 快適モード中の操作
 

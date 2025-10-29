@@ -1,4 +1,4 @@
-# Comfort Movie
+# Comfortable Video
 
 動画を最大画面で集中して視聴するためのChrome拡張機能です。
 
@@ -21,7 +21,7 @@ z-indexの制御により、ページ上の他の要素（広告、ポップア�
 ## インストール手順
 
 ### 推奨: ビルド済みパッケージを使用
-1. [リリースページ](https://github.com/TomoTom0/ComfortableMovie/releases)から `comfort-movie-extension.zip` をダウンロード
+1. [リリースページ](https://github.com/TomoTom0/ComfortableVideo/releases)から `comfort-movie-extension.zip` をダウンロード
 2. ダウンロードしたファイルを任意の場所に展開
 3. Chromeブラウザで `chrome://extensions/` を開く
 4. 右上の「デベロッパーモード」をオンに切り替え
@@ -30,8 +30,8 @@ z-indexの制御により、ページ上の他の要素（広告、ポップア�
 
 ### 開発者向け: ソースからビルド
 ```bash
-git clone https://github.com/TomoTom0/ComfortableMovie.git
-cd ComfortableMovie
+git clone https://github.com/TomoTom0/ComfortableVideo.git
+cd ComfortableVideo
 npm install
 npm run build
 ```

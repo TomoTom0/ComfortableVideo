@@ -2,7 +2,7 @@
 
 ## 概要
 
-Comfort Movie Chrome拡張機能の多言語対応（国際化：Internationalization）の実装方法と運用について説明します。
+Comfortable Video Chrome拡張機能の多言語対応（国際化：Internationalization）の実装方法と運用について説明します。
 
 ## サポート言語
 
@@ -54,7 +54,7 @@ _locales/
 ```json
 {
   "extensionName": {
-    "message": "Comfort Movie",
+    "message": "Comfortable Video",
     "description": "拡張機能の名前"
   },
   "hoverDetectionTime": {
@@ -105,7 +105,7 @@ function localizeUI(): void {
   });
 
   // ページタイトルの更新
-  document.title = chrome.i18n.getMessage('optionsTitle') || 'Comfort Movie - Options';
+  document.title = chrome.i18n.getMessage('optionsTitle') || 'Comfortable Video - Options';
 }
 ```
 

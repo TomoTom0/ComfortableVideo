@@ -2,7 +2,7 @@
 
 ## 概要
 
-Comfort Movie Chrome拡張機能の開発環境構築から実装、テスト、デバッグまでの包括的なガイドです。
+Comfortable Video Chrome拡張機能の開発環境構築から実装、テスト、デバッグまでの包括的なガイドです。
 
 ## 開発環境構築
 
@@ -199,7 +199,7 @@ src/
 // 開発用ログ関数
 const debugLog = (message: string, data?: any) => {
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[Comfort Movie] ${message}`, data);
+    console.log(`[Comfortable Video] ${message}`, data);
   }
 };
 
@@ -501,7 +501,7 @@ git push origin v1.1.0
 ### 3. リリースノート作成
 
 ```markdown
-# Comfort Movie v1.1.0
+# Comfortable Video v1.1.0
 
 ## 新機能
 - 多言語対応（日本語、英語、中国語）

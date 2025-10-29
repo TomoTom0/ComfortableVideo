@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Comfort Movie - Package Script
+# Comfortable Video - Package Script
 
 set -e
 
-echo "=== Comfort Movie - Package ==="
+echo "=== Comfortable Video - Package ==="
 echo ""
 
 # distディレクトリの存在確認

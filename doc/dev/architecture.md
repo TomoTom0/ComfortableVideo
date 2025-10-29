@@ -2,7 +2,7 @@
 
 ## 概要
 
-Comfort Movie Chrome拡張機能の技術アーキテクチャと実装詳細について説明します。
+Comfortable Video Chrome拡張機能の技術アーキテクチャと実装詳細について説明します。
 
 ## システム構成
 
@@ -10,7 +10,7 @@ Comfort Movie Chrome拡張機能の技術アーキテクチャと実装詳細に
 
 ```
 ┌─────────────────────────────────────────────┐
-│              Comfort Movie                  │
+│              Comfortable Video                  │
 ├─────────────────────────────────────────────┤
 │  Background Script (Service Worker)        │
 │  - コンテキストメニュー管理                    │

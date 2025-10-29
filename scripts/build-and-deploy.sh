@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Comfort Movie - Build and Deploy Script
+# Comfortable Video - Build and Deploy Script
 
 set -e
 
@@ -12,7 +12,7 @@ else
     exit 1
 fi
 
-echo "=== Comfort Movie - Build and Deploy ==="
+echo "=== Comfortable Video - Build and Deploy ==="
 echo ""
 
 # ビルド実行

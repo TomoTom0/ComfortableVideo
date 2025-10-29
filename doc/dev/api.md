@@ -1,4 +1,4 @@
-# Comfort Movie API リファレンス
+# Comfortable Video API リファレンス
 
 ## 主要関数
 

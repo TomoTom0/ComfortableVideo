@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Comfort Movie - Rsync Script
+# Comfortable Video - Rsync Script
 
 set -e
 
@@ -12,7 +12,7 @@ else
     exit 1
 fi
 
-echo "=== Comfort Movie - Rsync Deploy ==="
+echo "=== Comfortable Video - Rsync Deploy ==="
 echo ""
 
 # デプロイ先の確認

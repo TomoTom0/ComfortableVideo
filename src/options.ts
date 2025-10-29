@@ -1,4 +1,4 @@
-// Comfort Movie Options Page
+// Comfortable Video Options Page
 
 interface ComfortModeSettings {
   hoverDetectionTime: number;
@@ -205,7 +205,7 @@ function localizeUI(): void {
   });
 
   // ページタイトルも更新
-  document.title = chrome.i18n.getMessage('optionsTitle') || 'Comfort Movie - Options';
+  document.title = chrome.i18n.getMessage('optionsTitle') || 'Comfortable Video - Options';
 }
 
 // 初期化

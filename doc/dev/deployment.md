@@ -2,7 +2,7 @@
 
 ## 概要
 
-Comfort Movie Chrome拡張機能の開発からデプロイまでの手順を説明します。
+Comfortable Video Chrome拡張機能の開発からデプロイまでの手順を説明します。
 
 ## 前提条件
 

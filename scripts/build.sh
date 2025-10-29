@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Comfort Movie - Build Script
+# Comfortable Video - Build Script
 
 set -e
 
-echo "=== Comfort Movie - Build ==="
+echo "=== Comfortable Video - Build ==="
 echo ""
 
 echo "🔨 Building TypeScript project..."

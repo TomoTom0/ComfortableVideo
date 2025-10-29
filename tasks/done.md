@@ -3,7 +3,7 @@
 ## 2025-10-28
 
 ### 拡張機能名の統一（完了）
-- **変更内容**: "Comfort Movie" → "Comfortable Video" に統一
+- **変更内容**: "Comfortable Video" → "Comfortable Video" に統一
 - **理由**: 
   - "movie" は「映画」の意味で、一般的な「映像」を表さない
   - YouTube、Prime Videoなど様々な動画サイトで使用するため "video" が適切

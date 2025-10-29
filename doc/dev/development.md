@@ -1,8 +1,8 @@
-# Comfort Movie 開発者ガイド
+# Comfortable Video 開発者ガイド
 
 ## プロジェクト概要
 
-Comfort Movieは、TypeScriptで開発されたChrome拡張機能（Manifest V3）です。
+Comfortable Videoは、TypeScriptで開発されたChrome拡張機能（Manifest V3）です。
 動画視聴時の快適な環境を提供するため、スマートなコントロール機能とz-index制御を実装しています。
 
 ## 技術スタック
