@@ -448,6 +448,7 @@ function maximizeVideo(video: HTMLVideoElement): void {
       // 元のスタイルを保存
       const computedStyle = window.getComputedStyle(player);
       originalVideoStyles.set(player as any, {
+        inlineStyle: (player as HTMLElement).getAttribute('style'),
         position: computedStyle.position,
         top: computedStyle.top,
         left: computedStyle.left,
