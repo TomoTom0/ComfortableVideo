@@ -29,7 +29,5 @@ echo "✅ Extension package created: build/comfort-movie-extension.zip"
 echo ""
 echo "🎉 Package process finished!"
 
-# Ensure public assets are included in dist before packaging
-echo "📋 Copying static public assets into dist/ for packaging"
-mkdir -p dist
-rsync -a --delete public/ dist/ || cp -r public/. dist/ || true
+## Note: public/ is copied into dist/ during build. No-op here to avoid duplication.
+echo "Note: public/ assets are copied into dist/ during build. Skipping redundant copy."
