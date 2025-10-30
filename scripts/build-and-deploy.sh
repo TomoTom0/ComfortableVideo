@@ -27,20 +27,11 @@ fi
 echo "✅ Build completed successfully"
 echo ""
 
-# デプロイ先の確認
-if [ -z "$DEPLOY_DESTINATION" ]; then
-    echo "❌ Error: DEPLOY_DESTINATION not set in .env file"
-    exit 1
-fi
-
 echo "📦 Deploying to: $DEPLOY_DESTINATION"
 
-# rsync実行
-echo "📋 Copying static public assets into dist/ before deploy"
-mkdir -p dist
-rsync -a --delete public/ dist/ || cp -r public/. dist/ || true
-
-rsync -av --delete dist/ "$DEPLOY_DESTINATION"
+# Call the deploy-only script
+echo "📦 Calling deploy script"
+./scripts/deploy.sh
 
 if [ $? -ne 0 ]; then
     echo "❌ Deploy failed"
@@ -48,7 +39,9 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "✅ Deploy completed successfully"
+
 echo ""
 
 echo "🎉 Build and deploy process finished!"
+
 echo "Extension files are now available at: $DEPLOY_DESTINATION"
