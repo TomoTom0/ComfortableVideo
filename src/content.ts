@@ -2,6 +2,7 @@
 let isComfortModeActive = false;
 let currentActiveVideo: HTMLVideoElement | null = null; // 現在快適モードで使用中の動画要素
 let originalVideoStyles: Map<HTMLVideoElement | HTMLElement, {
+  inlineStyle: string | null;
   position: string;
   top: string;
   left: string;
@@ -313,6 +314,7 @@ function enableComfortMode(): void {
       // 元のスタイルを保存
       const computedStyle = window.getComputedStyle(video);
       originalVideoStyles.set(video, {
+        inlineStyle: video.getAttribute('style'),
         position: computedStyle.position,
         top: computedStyle.top,
         left: computedStyle.left,
@@ -1024,14 +1026,28 @@ function disableComfortMode(): void {
 
   // 動画の元のスタイルを復元
   originalVideoStyles.forEach((originalStyle, video) => {
-    video.style.position = originalStyle.position;
-    video.style.top = originalStyle.top;
-    video.style.left = originalStyle.left;
-    video.style.width = originalStyle.width;
-    video.style.height = originalStyle.height;
-    video.style.zIndex = originalStyle.zIndex;
-    video.style.transform = originalStyle.transform;
-    video.style.objectFit = '';
+    // If inlineStyle was originally absent, remove style properties instead of setting to 'null'
+    if (originalStyle.inlineStyle === null) {
+      video.style.removeProperty('position');
+      video.style.removeProperty('top');
+      video.style.removeProperty('left');
+      video.style.removeProperty('width');
+      video.style.removeProperty('height');
+      video.style.removeProperty('z-index');
+      video.style.removeProperty('transform');
+      video.style.removeProperty('object-fit');
+    } else {
+      video.style.position = originalStyle.position;
+      video.style.top = originalStyle.top;
+      video.style.left = originalStyle.left;
+      video.style.width = originalStyle.width;
+      video.style.height = originalStyle.height;
+      video.style.zIndex = originalStyle.zIndex;
+      video.style.transform = originalStyle.transform;
+      video.style.objectFit = '';
+    }
+    // force reflow to ensure layout updates
+    void video.getBoundingClientRect();
   });
 
   originalVideoStyles.clear();
@@ -1056,6 +1072,24 @@ function disableComfortMode(): void {
       player.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
     }
   }
+
+  // Retry adding YouTube control button if missing
+  setTimeout(() => {
+    const btn = document.querySelector('.ytp-button.comfort-mode-button, .comfort-mode-button');
+    if (!btn) {
+      // retry insertion a few times
+      let attempts = 0;
+      const retry = () => {
+        attempts++;
+        addYouTubeControlButton();
+        const check = document.querySelector('.ytp-button.comfort-mode-button, .comfort-mode-button');
+        if (!check && attempts < 3) {
+          setTimeout(retry, 150);
+        }
+      };
+      retry();
+    }
+  }, 100);
 
   // 解除ボタンを削除
   if (exitButton) {
