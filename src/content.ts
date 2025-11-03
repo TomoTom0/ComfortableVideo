@@ -1225,6 +1225,14 @@ function startVideoWatcher(): void {
   });
 }
 
+// Test hooks: expose enable/disable for automated testing
+try {
+  (window as any).__enableComfortMode = enableComfortMode;
+  (window as any).__disableComfortMode = disableComfortMode;
+} catch (e) {
+  // ignore
+}
+
 // 動画要素の監視を停止する関数
 function stopVideoWatcher(): void {
   if (videoWatcher) {
