@@ -9,7 +9,7 @@
 node_modules/
 npm-debug.log*
 
-# Build output (exclude dist/ but include build/ for releases)
+# Build output
 dist/
 
 # OS
@@ -26,6 +26,8 @@ Thumbs.db
 *.tmp
 *.log
 tmp/
+diagnostics.json
+step-*.json
 # Test files
 test-*.js
 check-*.js

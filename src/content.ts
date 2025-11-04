@@ -457,15 +457,14 @@ function maximizeVideo(video: HTMLVideoElement): void {
         zIndex: computedStyle.zIndex,
         transform: computedStyle.transform
       });
-      
-      player.style.cssText = `
-        position: fixed !important;
-        top: ${offsetY}px !important;
-        left: ${offsetX}px !important;
-        width: ${newWidth}px !important;
-        height: ${newHeight}px !important;
-        z-index: 2147483647 !important;
-      `;
+
+      // cssTextではなく個別のプロパティを設定（元のCSS変数を保持するため）
+      player.style.setProperty('position', 'fixed', 'important');
+      player.style.setProperty('top', `${offsetY}px`, 'important');
+      player.style.setProperty('left', `${offsetX}px`, 'important');
+      player.style.setProperty('width', `${newWidth}px`, 'important');
+      player.style.setProperty('height', `${newHeight}px`, 'important');
+      player.style.setProperty('z-index', '2147483647', 'important');
       player.classList.add('comfort-mode-video-container');
       
       // YouTubeのvideo要素も調整
@@ -577,25 +576,6 @@ function removeZIndexControl(): void {
   if (zIndexStyle) {
     zIndexStyle.remove();
     zIndexStyle = null;
-  }
-
-  // YouTubeの#movie_playerのスタイルを復元
-  if (isYouTube()) {
-    const player = document.getElementById('movie_player');
-    if (player) {
-      const originalStyle = originalVideoStyles.get(player as any);
-      if (originalStyle) {
-        player.style.position = originalStyle.position;
-        player.style.top = originalStyle.top;
-        player.style.left = originalStyle.left;
-        player.style.width = originalStyle.width;
-        player.style.height = originalStyle.height;
-        player.style.zIndex = originalStyle.zIndex;
-        player.style.transform = originalStyle.transform;
-        originalVideoStyles.delete(player as any);
-      }
-      player.classList.remove('comfort-mode-video-container');
-    }
   }
 
   // 親要素のz-indexを復元
@@ -1025,45 +1005,46 @@ function disableComfortMode(): void {
   isVideoControlsEnabled = false;
   document.body.classList.remove('video-controls-enabled');
 
-  // 動画の元のスタイルを復元
-  originalVideoStyles.forEach((originalStyle, video) => {
-    // If inlineStyle was originally absent, remove style properties instead of setting to 'null'
-    if (originalStyle.inlineStyle === null) {
-      video.style.removeProperty('position');
-      video.style.removeProperty('top');
-      video.style.removeProperty('left');
-      video.style.removeProperty('width');
-      video.style.removeProperty('height');
-      video.style.removeProperty('z-index');
-      video.style.removeProperty('transform');
-      video.style.removeProperty('object-fit');
-    } else {
-      video.style.position = originalStyle.position;
-      video.style.top = originalStyle.top;
-      video.style.left = originalStyle.left;
-      video.style.width = originalStyle.width;
-      video.style.height = originalStyle.height;
-      video.style.zIndex = originalStyle.zIndex;
-      video.style.transform = originalStyle.transform;
-      video.style.objectFit = '';
-    }
-    // force reflow to ensure layout updates
-    void video.getBoundingClientRect();
-  });
-
-  originalVideoStyles.clear();
-
   // カーソル検出を停止
   stopCursorDetection();
 
   // z-index制御を解除
   removeZIndexControl();
 
-  // マウスイベントを有効化
+  // マウスイベントを有効化（CSSスタイルシートを削除）
   const style = document.getElementById('comfort-mode-style');
   if (style) {
     style.remove();
   }
+
+  // 動画の元のスタイルを復元（CSSスタイルシート削除後に実行）
+  originalVideoStyles.forEach((originalStyle, video) => {
+    // !important付きのプロパティを個別に削除（setPropertyで設定されたものを削除）
+    video.style.removeProperty('position');
+    video.style.removeProperty('top');
+    video.style.removeProperty('left');
+    video.style.removeProperty('width');
+    video.style.removeProperty('height');
+    video.style.removeProperty('z-index');
+    video.style.removeProperty('transform');
+    video.style.removeProperty('object-fit');
+
+    // 元のinline styleを復元
+    if (originalStyle.inlineStyle && originalStyle.inlineStyle !== '') {
+      video.setAttribute('style', originalStyle.inlineStyle);
+    } else {
+      video.removeAttribute('style');
+    }
+
+    // comfort-mode関連のクラスを削除
+    video.classList.remove('comfort-mode-video');
+    video.classList.remove('comfort-mode-video-container');
+
+    // force reflow to ensure layout updates
+    void video.getBoundingClientRect();
+  });
+
+  originalVideoStyles.clear();
 
   // YouTubeのコントロールを再表示させる
   if (isYouTube()) {

@@ -1,6 +1,6 @@
 {
   "name": "comfortable-video",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Comfortable Video - 快適な動画視聴環境を提供するChrome拡張機能",
   "scripts": {
     "build": "tsc && npm run copy-assets",
@@ -14,8 +14,8 @@
     "build-and-deploy": "./scripts/build-and-deploy.sh"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/chrome": "^0.0.246"
+    "@types/chrome": "^0.0.246",
+    "typescript": "^5.0.0"
   },
   "keywords": [
     "chrome-extension",
@@ -24,5 +24,8 @@
     "typescript"
   ],
   "author": "Your Name",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^24.27.0"
+  }
 }

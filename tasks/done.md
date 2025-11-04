@@ -81,3 +81,43 @@
 
 ### 修正ファイル
 - `src/content.ts`: z-index制御ロジックとタイマー型定義の修正
+ 
+## 2025-10-30
+
+### リポジトリ整理とリネーム（完了）
+- ルート直下に散在していた一時ファイル・生成物を `tmp/` に集約
+- `tmp/` 以下の大量な生成物（スクリーンショット、ログ、テスト出力等）を履歴から完全に削除（`git-filter-repo` 実行）し、ミラーバックアップを `../repo-backup.git` に作成
+- GitHub リポジトリ名を `TomoTom0/ComfortableMovie` → `TomoTom0/ComfortableVideo` に変更し、ソース内表記を `ComfortableVideo` に統一してコミット・プッシュ
+- `dist/` の不要な生成物管理を見直し、静的非生成アセットを `public/` に移動、ビルド時に `public/` を `dist/` にコピーするようにスクリプトを更新
+
+### スクリプトとビルドの改善
+- `scripts/build.sh`, `scripts/package.sh`, `scripts/build-and-deploy.sh` に `rsync -a --delete public/ dist/` を追加して、`public/` の静的資産をビルド出力に反映するように変更
+- `dist/options.*` と `dist/manifest.json` の取り扱いを見直し（必要最小限のみ追跡していたが、方針は `public/` をソースに `dist/` を生成物に戻す形に統一）
+
+### 備考
+- バックアップ `../repo-backup.git` を保存。履歴を元に戻す場合はこのバックアップから復元可能
+- 個人開発のためチーム通知は行っていない
+
+## 2025-10-31
+
+### YouTubeコントロール表示問題の修正（完了）
+- **問題**: 快適モード解除後、YouTubeコントロール要素（再生ボタン、シークバーなど）が表示されない
+- **調査結果**: 
+  - Puppeteerテストで問題を再現していたが、既存テストでは検出できていなかった
+  - 詳細な検証テストを作成して、inline styleの復元が不完全であることを発見
+- **根本原因**:
+  1. `maximizeVideo()`で`player.style.cssText = ...`を使用すると、元のCSS変数（`--yt-delhi-pill-height`等）が完全に上書きされて失われる
+  2. `setProperty(..., 'important')`で設定した`!important`付きプロパティは、`removeAttribute('style')`では削除されない
+  3. CSSスタイルシート削除が復元処理の後に実行されていた
+- **修正内容**:
+  1. `maximizeVideo()`関数: `cssText`の代わりに`setProperty()`で個別プロパティを設定（CSS変数を保持）
+  2. `disableComfortMode()`関数: 
+     - 処理順序を変更（CSSスタイルシート削除 → 復元処理）
+     - `removeProperty()`で個別プロパティを削除してから`setAttribute()`で元のinline styleを復元
+  3. `removeZIndexControl()`関数: #movie_player復元処理を削除（disableComfortMode()で一本化）
+- **検証**: Puppeteerテストで完全復元を確認
+  - position: 完全復元
+  - positionComputed: `relative`に復元
+  - inlineStyle: CSS変数を含め完全一致
+- **修正ファイル**: `src/content.ts`
+
