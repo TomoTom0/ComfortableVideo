@@ -295,6 +295,7 @@ function setupYouTubeObserver(): void {
 
 // 動画要素を検出し、快適モードを適用する関数
 function enableComfortMode(): void {
+  console.log('[ComfortVideo] enableComfortMode() called');
   const videos = document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>;
 
   if (videos.length === 0) {
@@ -482,6 +483,7 @@ function maximizeVideo(video: HTMLVideoElement): void {
       const videoContainer = player.querySelector('.html5-video-container') as HTMLElement;
       if (videoContainer) {
         videoContainer.style.setProperty('z-index', '2147483647', 'important');
+        videoContainer.classList.add('comfort-mode-video-container');
       }
     }
   } else {
@@ -993,8 +995,13 @@ function showExitButton(): void {
 
 // 快適モードを解除する関数
 function disableComfortMode(): void {
-  if (!isComfortModeActive) return;
+  console.log('[ComfortVideo] disableComfortMode() called');
+  if (!isComfortModeActive) {
+    console.log('[ComfortVideo] Already disabled, returning');
+    return;
+  }
 
+  console.log('[ComfortVideo] Starting disable process');
   isComfortModeActive = false;
   currentActiveVideo = null; // アクティブ動画をクリア
 
@@ -1015,10 +1022,15 @@ function disableComfortMode(): void {
   const style = document.getElementById('comfort-mode-style');
   if (style) {
     style.remove();
+    console.log('[ComfortVideo] Removed comfort-mode-style');
   }
 
   // 動画の元のスタイルを復元（CSSスタイルシート削除後に実行）
+  console.log('[ComfortVideo] originalVideoStyles size:', originalVideoStyles.size);
   originalVideoStyles.forEach((originalStyle, video) => {
+    console.log('[ComfortVideo] Restoring element:', video.tagName, video.id || video.className);
+    console.log('[ComfortVideo] Original inline style:', originalStyle.inlineStyle);
+
     // !important付きのプロパティを個別に削除（setPropertyで設定されたものを削除）
     video.style.removeProperty('position');
     video.style.removeProperty('top');
@@ -1036,6 +1048,9 @@ function disableComfortMode(): void {
       video.removeAttribute('style');
     }
 
+    console.log('[ComfortVideo] Restored inline style:', video.getAttribute('style'));
+    console.log('[ComfortVideo] Computed position:', window.getComputedStyle(video).position);
+
     // comfort-mode関連のクラスを削除
     video.classList.remove('comfort-mode-video');
     video.classList.remove('comfort-mode-video-container');
@@ -1043,6 +1058,36 @@ function disableComfortMode(): void {
     // force reflow to ensure layout updates
     void video.getBoundingClientRect();
   });
+
+  // .comfort-mode-video-containerクラスを持つすべての要素のz-indexを復元
+  const videoContainers = document.querySelectorAll('.comfort-mode-video-container');
+  console.log('[ComfortVideo] Restoring z-index for', videoContainers.length, 'video containers');
+  videoContainers.forEach(container => {
+    const elem = container as HTMLElement;
+    console.log('[ComfortVideo] Removing z-index from:', elem.tagName, elem.className);
+    elem.style.removeProperty('z-index');
+    elem.classList.remove('comfort-mode-video-container');
+  });
+
+  // YouTubeコントロールの状態を確認
+  if (isYouTube()) {
+    setTimeout(() => {
+      const controls = document.querySelector('.ytp-chrome-bottom');
+      if (controls) {
+        const style = window.getComputedStyle(controls);
+        console.log('[ComfortVideo] Controls after restore:', {
+          display: style.display,
+          opacity: style.opacity,
+          visibility: style.visibility,
+          zIndex: style.zIndex,
+          pointerEvents: style.pointerEvents,
+          position: style.position
+        });
+      } else {
+        console.log('[ComfortVideo] Controls element not found!');
+      }
+    }, 100);
+  }
 
   originalVideoStyles.clear();
 

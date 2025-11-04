@@ -121,3 +121,28 @@
   - inlineStyle: CSS変数を含め完全一致
 - **修正ファイル**: `src/content.ts`
 
+## 2025-11-04
+
+### YouTubeコントロール要素がクリックできない問題の修正（完了）
+- **問題**: 快適モード解除後、YouTubeコントロール要素（再生ボタン、シークバーなど）は視覚的には表示されるが、実際にはクリックできない
+- **調査結果**:
+  - Puppeteerの`elementFromPoint()`テストで、再生ボタンの位置にVIDEO要素が検出された
+  - DOM構造解析により、`.html5-video-container`（VIDEO要素の親コンテナ）のz-indexが`2147483647`のまま残っていることを発見
+- **根本原因**:
+  - `maximizeVideo()`で`.html5-video-container`のz-indexを`2147483647`に設定していた（line 485）
+  - しかし`disableComfortMode()`でこのz-indexを復元する処理がなかった
+  - 結果、VIDEO要素の親コンテナ（z-index: 2147483647）がコントロール要素（z-index: 59）の上に表示され、コントロールがクリックできなくなっていた
+- **修正内容**:
+  1. `src/content.ts:486` - `.html5-video-container`にz-indexを設定する際、`comfort-mode-video-container`クラスも追加
+  2. `src/content.ts:1061-1069` - `disableComfortMode()`で、`.comfort-mode-video-container`クラスを持つすべての要素のz-indexを`removeProperty()`で削除する処理を追加
+- **検証**:
+  - Puppeteerテストで確認:
+    - BEFORE: `.html5-video-container` z-index = 10
+    - DURING: `.html5-video-container` z-index = 2147483647
+    - AFTER: `.html5-video-container` z-index = 10（正常に復元）
+  - `elementFromPoint()`テスト:
+    - BEFORE: 再生ボタンの位置にBUTTON要素 → クリック可能
+    - AFTER: 再生ボタンの位置にBUTTON要素 → **クリック可能** ✅
+- **バージョン**: 1.0.1 → 1.0.2
+- **修正ファイル**: `src/content.ts`
+
