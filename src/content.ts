@@ -295,7 +295,6 @@ function setupYouTubeObserver(): void {
 
 // 動画要素を検出し、快適モードを適用する関数
 function enableComfortMode(): void {
-  console.log('[ComfortVideo] enableComfortMode() called');
   const videos = document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>;
 
   if (videos.length === 0) {
@@ -897,7 +896,6 @@ function checkVideoEnded(): void {
 
   // すべての動画が終了した場合、快適モードを解除
   if (allEnded) {
-    console.log('All videos ended, disabling comfort mode');
     disableComfortMode();
   }
 }
@@ -995,13 +993,10 @@ function showExitButton(): void {
 
 // 快適モードを解除する関数
 function disableComfortMode(): void {
-  console.log('[ComfortVideo] disableComfortMode() called');
   if (!isComfortModeActive) {
-    console.log('[ComfortVideo] Already disabled, returning');
     return;
   }
 
-  console.log('[ComfortVideo] Starting disable process');
   isComfortModeActive = false;
   currentActiveVideo = null; // アクティブ動画をクリア
 
@@ -1022,15 +1017,10 @@ function disableComfortMode(): void {
   const style = document.getElementById('comfort-mode-style');
   if (style) {
     style.remove();
-    console.log('[ComfortVideo] Removed comfort-mode-style');
   }
 
   // 動画の元のスタイルを復元（CSSスタイルシート削除後に実行）
-  console.log('[ComfortVideo] originalVideoStyles size:', originalVideoStyles.size);
   originalVideoStyles.forEach((originalStyle, video) => {
-    console.log('[ComfortVideo] Restoring element:', video.tagName, video.id || video.className);
-    console.log('[ComfortVideo] Original inline style:', originalStyle.inlineStyle);
-
     // !important付きのプロパティを個別に削除（setPropertyで設定されたものを削除）
     video.style.removeProperty('position');
     video.style.removeProperty('top');
@@ -1048,75 +1038,20 @@ function disableComfortMode(): void {
       video.removeAttribute('style');
     }
 
-    console.log('[ComfortVideo] Restored inline style:', video.getAttribute('style'));
-    console.log('[ComfortVideo] Computed position:', window.getComputedStyle(video).position);
-
     // comfort-mode関連のクラスを削除
     video.classList.remove('comfort-mode-video');
     video.classList.remove('comfort-mode-video-container');
-
-    // force reflow to ensure layout updates
-    void video.getBoundingClientRect();
   });
 
   // .comfort-mode-video-containerクラスを持つすべての要素のz-indexを復元
   const videoContainers = document.querySelectorAll('.comfort-mode-video-container');
-  console.log('[ComfortVideo] Restoring z-index for', videoContainers.length, 'video containers');
   videoContainers.forEach(container => {
     const elem = container as HTMLElement;
-    console.log('[ComfortVideo] Removing z-index from:', elem.tagName, elem.className);
     elem.style.removeProperty('z-index');
     elem.classList.remove('comfort-mode-video-container');
   });
 
-  // YouTubeコントロールの状態を確認
-  if (isYouTube()) {
-    setTimeout(() => {
-      const controls = document.querySelector('.ytp-chrome-bottom');
-      if (controls) {
-        const style = window.getComputedStyle(controls);
-        console.log('[ComfortVideo] Controls after restore:', {
-          display: style.display,
-          opacity: style.opacity,
-          visibility: style.visibility,
-          zIndex: style.zIndex,
-          pointerEvents: style.pointerEvents,
-          position: style.position
-        });
-      } else {
-        console.log('[ComfortVideo] Controls element not found!');
-      }
-    }, 100);
-  }
-
   originalVideoStyles.clear();
-
-  // YouTubeのコントロールを再表示させる
-  if (isYouTube()) {
-    const player = document.getElementById('movie_player');
-    if (player) {
-      // マウスイベントを発火させてコントロールを表示
-      player.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
-    }
-  }
-
-  // Retry adding YouTube control button if missing
-  setTimeout(() => {
-    const btn = document.querySelector('.ytp-button.comfort-mode-button, .comfort-mode-button');
-    if (!btn) {
-      // retry insertion a few times
-      let attempts = 0;
-      const retry = () => {
-        attempts++;
-        addYouTubeControlButton();
-        const check = document.querySelector('.ytp-button.comfort-mode-button, .comfort-mode-button');
-        if (!check && attempts < 3) {
-          setTimeout(retry, 150);
-        }
-      };
-      retry();
-    }
-  }, 100);
 
   // 解除ボタンを削除
   if (exitButton) {
@@ -1136,8 +1071,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'toggleComfortMode') {
     // video要素から直接起動された場合の特別な処理
     if (message.isVideoContext) {
-      console.log('動画要素から快適モードが起動されました');
-
       // 既に快適モードがアクティブな場合は解除
       if (isComfortModeActive) {
         disableComfortMode();
@@ -1159,7 +1092,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // オプションページからの設定更新メッセージを処理
   if (message.action === 'settingsUpdated') {
-    console.log('設定が更新されました:', message.settings);
     // 必要に応じて設定を反映（現在は基本的な実装のため省略）
     sendResponse({ success: true });
   }
@@ -1216,7 +1148,6 @@ function startVideoWatcher(): void {
 
     // アクティブな動画要素がDOMから削除されたかチェック
     if (!document.contains(currentActiveVideo)) {
-      console.log('Active video element removed from DOM, disabling comfort mode');
       disableComfortMode();
       return;
     }
@@ -1229,7 +1160,6 @@ function startVideoWatcher(): void {
             const element = node as Element;
             // 削除された要素がアクティブな動画要素を含んでいるかチェック
             if (element === currentActiveVideo || element.contains(currentActiveVideo)) {
-              console.log('Active video element or its container removed, disabling comfort mode');
               disableComfortMode();
             }
           }
