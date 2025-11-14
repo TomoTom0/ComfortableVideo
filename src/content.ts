@@ -1216,8 +1216,8 @@ function showCustomControls(): void {
     resetControlsAutoHide();
   });
 
-  // 初期表示後、3秒後に自動で非表示
-  resetControlsAutoHide();
+  // 初期表示は常に表示（自動非表示しない）
+  // ユーザーがマウスを動かしたり、クリックしたときに初めて自動非表示タイマーが開始される
 }
 
 // 時間をフォーマットする関数（mm:ss）
