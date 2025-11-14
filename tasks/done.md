@@ -148,6 +148,24 @@
 
 ## 2025-11-14
 
+### プロジェクト構造の整理（完了）
+- **問題**: manifest.jsonや静的アセットがプロジェクトルートやsrc/に散在し、ビルド生成物との区別が不明確
+- **修正内容**:
+  1. 静的アセットをpublic/に集約
+     - `manifest.json` → `public/manifest.json`
+     - `src/content.css` → `public/content.css`
+     - `src/options.css`, `src/options.html` → `public/`
+  2. ルートの重複ディレクトリを削除
+     - `icons/`, `_locales/` を削除（public/に統合済み）
+  3. package.jsonのビルドスクリプトを修正
+     - `copy-assets`スクリプトを削除
+     - `build`スクリプトで`rsync -a public/ dist/`を実行
+- **結果**:
+  - 静的アセット（public/）とソースコード（src/）、ビルド生成物（dist/）が明確に分離
+  - dist/はビルド時に自動生成され、public/とsrc/からコンパイルされたファイルを含む
+  - プロジェクト構造がよりクリーンになった
+- **修正ファイル**: package.json, public/*, _locales/, icons/
+
 ### 快適モードでの動画操作機能の追加（完了）
 - **問題**: 快適モード中は動画を一時停止、再生、再生位置の移動などができず、完全に操作不能だった
 - **ユーザーの要望**:
