@@ -3,8 +3,7 @@
   "version": "1.1.0",
   "description": "Comfortable Video - 快適な動画視聴環境を提供するChrome拡張機能",
   "scripts": {
-    "build": "tsc && npm run copy-assets",
-    "copy-assets": "cp manifest.json dist/ && cp src/*.css dist/ 2>/dev/null || true && cp src/*.html dist/ 2>/dev/null || true && cp -r icons dist/ 2>/dev/null || true && cp -r _locales dist/ 2>/dev/null || true",
+    "build": "tsc && rsync -a public/ dist/ || cp -r public/. dist/ || true",
     "watch": "tsc --watch",
     "clean": "rm -rf dist",
     "rebuild": "npm run clean && npm run build",
