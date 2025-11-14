@@ -487,15 +487,14 @@ function maximizeVideo(video: HTMLVideoElement): void {
     }
   } else {
     // 他のサイトでは動画要素を直接拡大
-    video.style.cssText += `
-      position: fixed !important;
-      top: ${offsetY}px !important;
-      left: ${offsetX}px !important;
-      width: ${newWidth}px !important;
-      height: ${newHeight}px !important;
-      object-fit: fill !important;
-      transform: none !important;
-    `;
+    // setProperty()を使用して元のスタイルを保持
+    video.style.setProperty('position', 'fixed', 'important');
+    video.style.setProperty('top', `${offsetY}px`, 'important');
+    video.style.setProperty('left', `${offsetX}px`, 'important');
+    video.style.setProperty('width', `${newWidth}px`, 'important');
+    video.style.setProperty('height', `${newHeight}px`, 'important');
+    video.style.setProperty('object-fit', 'fill', 'important');
+    video.style.setProperty('transform', 'none', 'important');
   }
 }
 
@@ -794,7 +793,8 @@ function handleClick(event: MouseEvent): void {
   const videos = document.querySelectorAll('video.comfort-mode-video') as NodeListOf<HTMLVideoElement>;
   if (videos.length === 0) return;
 
-  // 動画下部20%エリア内でのクリックをチェック
+  // 動画エリア内でのクリックをチェック
+  let clickedVideo: HTMLVideoElement | null = null;
   let isClickInVideoBottomArea = false;
 
   videos.forEach(video => {
@@ -805,6 +805,8 @@ function handleClick(event: MouseEvent): void {
                          event.clientY >= rect.top && event.clientY <= rect.bottom;
 
     if (isInVideoArea) {
+      clickedVideo = video;
+
       // さらに下部20%の範囲内かチェック
       const bottomAreaHeight = rect.height * 0.2;
       const bottomAreaTop = rect.bottom - bottomAreaHeight;
@@ -826,6 +828,14 @@ function handleClick(event: MouseEvent): void {
     // コントロールを有効化
     if (!isVideoControlsEnabled) {
       enableVideoControls();
+    }
+  } else if (clickedVideo !== null) {
+    // 動画下部20%以外のエリアをクリックした場合、再生/一時停止をトグル
+    const video: HTMLVideoElement = clickedVideo;
+    if (video.paused) {
+      video.play();
+    } else {
+      video.pause();
     }
   }
 }

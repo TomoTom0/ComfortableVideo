@@ -2,7 +2,21 @@
 
 ## 緊急
 
-### コードクリーンアップ
+### YouTube以外のサイトの復元処理修正
+- [ ] 実装の問題点
+  - YouTube以外: VIDEO要素を直接拡大、cssText += で上書き
+  - comfort-mode-video-containerクラスが付与されない
+  - 復元時にスタイルが残る可能性
+- [ ] 修正内容
+  - YouTubeと同じくsetProperty()を使用
+  - comfort-mode-videoクラスを追加
+  - 元のinline styleを保存
+  - 復元処理でremoveProperty()とsetAttribute()
+- [ ] テスト
+  - Vimeo, Dailymotionなどで動作確認
+  - 復元が正しく行われるか確認
+
+### ~~コードクリーンアップ~~
 - [x] 不要なデバッグ用console.logを削除
   - ✅ disableComfortMode()内の大量のログを削除
   - ✅ enableComfortMode()のログを削除
@@ -12,10 +26,10 @@
   - ✅ force reflowを削除
   - ✅ MouseEvent発火を削除
   - ✅ ボタン再挿入リトライを削除
-- [x] Puppeteerテストで動作確認
+- [x] Chromiumで動作確認
   - ✅ コントロールのクリック可能性テスト: 正常
   - ✅ DOM構造テスト: z-index正常に復元
-- [ ] Chromiumで実際に動作確認してから本番デプロイ
+  - ✅ デバッグログなし確認
 
 ### ~~YouTubeコントロール表示問題の調査と修正~~
 - [x] 快適モード解除後にコントロール要素（再生ボタン、シークバーなど）が表示されない問題
