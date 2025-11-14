@@ -18,6 +18,10 @@ let videoWatcher: MutationObserver | null = null;
 // 解除ボタンの要素
 let exitButton: HTMLElement | null = null;
 
+// 独自のコントロールUI要素
+let customControls: HTMLElement | null = null;
+let controlsAutoHideTimer: ReturnType<typeof setTimeout> | null = null;
+
 // YouTube用コントロールボタンの要素
 let youtubeControlButton: HTMLElement | null = null;
 
@@ -376,6 +380,9 @@ function enableComfortMode(): void {
   // 解除ボタンを表示
   showExitButton();
 
+  // 独自のコントロールUIを表示
+  showCustomControls();
+
   // YouTubeボタンの状態を更新
   updateYouTubeButtonState();
 
@@ -472,6 +479,7 @@ function maximizeVideo(video: HTMLVideoElement): void {
         position: static !important;
         width: 100% !important;
         height: 100% !important;
+        z-index: 2147483647 !important;
         object-fit: contain !important;
         transform: none !important;
         top: auto !important;
@@ -493,6 +501,7 @@ function maximizeVideo(video: HTMLVideoElement): void {
     video.style.setProperty('left', `${offsetX}px`, 'important');
     video.style.setProperty('width', `${newWidth}px`, 'important');
     video.style.setProperty('height', `${newHeight}px`, 'important');
+    video.style.setProperty('z-index', '2147483647', 'important');
     video.style.setProperty('object-fit', 'fill', 'important');
     video.style.setProperty('transform', 'none', 'important');
   }
@@ -692,6 +701,11 @@ function handleMouseMove(event: MouseEvent): void {
   // 最後のマウスイベントを保存（解除ボタンのホバー効果で使用）
   (window as any).lastMouseEvent = event;
 
+  // マウスが動いたらコントロールを表示
+  if (customControls) {
+    resetControlsAutoHide();
+  }
+
   const videos = document.querySelectorAll('video.comfort-mode-video') as NodeListOf<HTMLVideoElement>;
   if (videos.length === 0) return;
 
@@ -795,7 +809,6 @@ function handleClick(event: MouseEvent): void {
 
   // 動画エリア内でのクリックをチェック
   let clickedVideo: HTMLVideoElement | null = null;
-  let isClickInVideoBottomArea = false;
 
   videos.forEach(video => {
     const rect = video.getBoundingClientRect();
@@ -806,36 +819,20 @@ function handleClick(event: MouseEvent): void {
 
     if (isInVideoArea) {
       clickedVideo = video;
-
-      // さらに下部20%の範囲内かチェック
-      const bottomAreaHeight = rect.height * 0.2;
-      const bottomAreaTop = rect.bottom - bottomAreaHeight;
-
-      if (event.clientY >= bottomAreaTop) {
-        isClickInVideoBottomArea = true;
-      }
     }
   });
 
-  // 動画下部20%をクリックした場合、即座にコントロール有効化
-  if (isClickInVideoBottomArea) {
-    // 既存のタイマーをクリア
-    if (cursorTimer) {
-      clearTimeout(cursorTimer);
-      cursorTimer = null;
-    }
-
-    // コントロールを有効化
-    if (!isVideoControlsEnabled) {
-      enableVideoControls();
-    }
-  } else if (clickedVideo !== null) {
-    // 動画下部20%以外のエリアをクリックした場合、再生/一時停止をトグル
+  // 動画エリアをクリックした場合、再生/一時停止をトグル
+  if (clickedVideo !== null) {
     const video: HTMLVideoElement = clickedVideo;
     if (video.paused) {
       video.play();
     } else {
       video.pause();
+    }
+    // コントロールを表示
+    if (customControls) {
+      resetControlsAutoHide();
     }
   }
 }
@@ -1001,6 +998,266 @@ function showExitButton(): void {
   document.body.appendChild(exitButton);
 }
 
+// 独自のコントロールUIを表示する関数
+function showCustomControls(): void {
+  if (customControls || !currentActiveVideo) return;
+
+  const video = currentActiveVideo;
+
+  // コントロールコンテナを作成
+  customControls = document.createElement('div');
+  customControls.id = 'comfort-mode-custom-controls';
+  customControls.style.cssText = `
+    position: fixed !important;
+    bottom: 60px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    padding: 15px 20px !important;
+    border-radius: 8px !important;
+    z-index: 2147483647 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 15px !important;
+    pointer-events: auto !important;
+    transition: opacity 0.3s ease !important;
+    opacity: 1 !important;
+  `;
+
+  // 10秒戻しボタン
+  const rewind10Btn = document.createElement('button');
+  rewind10Btn.innerHTML = '⏪ 10s';
+  rewind10Btn.style.cssText = `
+    background: transparent !important;
+    border: none !important;
+    color: white !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    padding: 8px 12px !important;
+    border-radius: 4px !important;
+    transition: background 0.2s !important;
+  `;
+  rewind10Btn.addEventListener('mouseenter', () => {
+    rewind10Btn.style.background = 'rgba(255, 255, 255, 0.2) !important';
+  });
+  rewind10Btn.addEventListener('mouseleave', () => {
+    rewind10Btn.style.background = 'transparent !important';
+  });
+  rewind10Btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    video.currentTime = Math.max(0, video.currentTime - 10);
+    resetControlsAutoHide();
+  });
+
+  // 再生/一時停止ボタン
+  const playPauseBtn = document.createElement('button');
+  playPauseBtn.id = 'comfort-play-pause-btn';
+  playPauseBtn.innerHTML = video.paused ? '▶' : '⏸';
+  playPauseBtn.style.cssText = `
+    background: transparent !important;
+    border: none !important;
+    color: white !important;
+    font-size: 24px !important;
+    cursor: pointer !important;
+    padding: 8px 12px !important;
+    border-radius: 4px !important;
+    transition: background 0.2s !important;
+  `;
+  playPauseBtn.addEventListener('mouseenter', () => {
+    playPauseBtn.style.background = 'rgba(255, 255, 255, 0.2) !important';
+  });
+  playPauseBtn.addEventListener('mouseleave', () => {
+    playPauseBtn.style.background = 'transparent !important';
+  });
+  playPauseBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (video.paused) {
+      video.play();
+    } else {
+      video.pause();
+    }
+    resetControlsAutoHide();
+  });
+
+  // 10秒送りボタン
+  const forward10Btn = document.createElement('button');
+  forward10Btn.innerHTML = '10s ⏩';
+  forward10Btn.style.cssText = `
+    background: transparent !important;
+    border: none !important;
+    color: white !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    padding: 8px 12px !important;
+    border-radius: 4px !important;
+    transition: background 0.2s !important;
+  `;
+  forward10Btn.addEventListener('mouseenter', () => {
+    forward10Btn.style.background = 'rgba(255, 255, 255, 0.2) !important';
+  });
+  forward10Btn.addEventListener('mouseleave', () => {
+    forward10Btn.style.background = 'transparent !important';
+  });
+  forward10Btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    video.currentTime = Math.min(video.duration, video.currentTime + 10);
+    resetControlsAutoHide();
+  });
+
+  // 現在時刻表示
+  const currentTimeDisplay = document.createElement('span');
+  currentTimeDisplay.id = 'comfort-current-time';
+  currentTimeDisplay.textContent = formatTime(video.currentTime);
+  currentTimeDisplay.style.cssText = `
+    color: white !important;
+    font-size: 14px !important;
+    min-width: 45px !important;
+    text-align: right !important;
+  `;
+
+  // シークバー
+  const seekBar = document.createElement('input');
+  seekBar.type = 'range';
+  seekBar.min = '0';
+  seekBar.max = String(video.duration || 100);
+  seekBar.value = String(video.currentTime);
+  seekBar.style.cssText = `
+    width: 300px !important;
+    cursor: pointer !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    height: 6px !important;
+    border-radius: 3px !important;
+    background: rgba(255, 255, 255, 0.3) !important;
+    outline: none !important;
+  `;
+  // シークバーのスタイル（thumb）
+  const style = document.createElement('style');
+  style.textContent = `
+    #comfort-mode-custom-controls input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none !important;
+      appearance: none !important;
+      width: 14px !important;
+      height: 14px !important;
+      border-radius: 50% !important;
+      background: white !important;
+      cursor: pointer !important;
+    }
+    #comfort-mode-custom-controls input[type="range"]::-moz-range-thumb {
+      width: 14px !important;
+      height: 14px !important;
+      border-radius: 50% !important;
+      background: white !important;
+      cursor: pointer !important;
+      border: none !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  seekBar.addEventListener('input', (e) => {
+    e.stopPropagation();
+    const target = e.target as HTMLInputElement;
+    video.currentTime = parseFloat(target.value);
+    resetControlsAutoHide();
+  });
+
+  // 総時間表示
+  const durationDisplay = document.createElement('span');
+  durationDisplay.id = 'comfort-duration';
+  durationDisplay.textContent = formatTime(video.duration || 0);
+  durationDisplay.style.cssText = `
+    color: white !important;
+    font-size: 14px !important;
+    min-width: 45px !important;
+  `;
+
+  // 要素を追加
+  customControls.appendChild(rewind10Btn);
+  customControls.appendChild(playPauseBtn);
+  customControls.appendChild(forward10Btn);
+  customControls.appendChild(currentTimeDisplay);
+  customControls.appendChild(seekBar);
+  customControls.appendChild(durationDisplay);
+
+  document.body.appendChild(customControls);
+
+  // 動画の再生状態変更イベントをリスンして、ボタンのアイコンを更新
+  video.addEventListener('play', () => {
+    if (playPauseBtn) playPauseBtn.innerHTML = '⏸';
+  });
+  video.addEventListener('pause', () => {
+    if (playPauseBtn) playPauseBtn.innerHTML = '▶';
+  });
+
+  // 動画の時間更新イベントをリスンして、シークバーと時刻表示を更新
+  video.addEventListener('timeupdate', () => {
+    if (seekBar) seekBar.value = String(video.currentTime);
+    if (currentTimeDisplay) currentTimeDisplay.textContent = formatTime(video.currentTime);
+  });
+
+  // 動画の長さ変更イベントをリスンして、シークバーの最大値と総時間表示を更新
+  video.addEventListener('durationchange', () => {
+    if (seekBar) {
+      seekBar.max = String(video.duration);
+    }
+    if (durationDisplay) durationDisplay.textContent = formatTime(video.duration);
+  });
+
+  // コントロールにマウスを移動したら表示を維持
+  customControls.addEventListener('mouseenter', () => {
+    if (controlsAutoHideTimer) {
+      clearTimeout(controlsAutoHideTimer);
+      controlsAutoHideTimer = null;
+    }
+    if (customControls) customControls.style.opacity = '1';
+  });
+
+  customControls.addEventListener('mouseleave', () => {
+    resetControlsAutoHide();
+  });
+
+  // 初期表示後、3秒後に自動で非表示
+  resetControlsAutoHide();
+}
+
+// 時間をフォーマットする関数（mm:ss）
+function formatTime(seconds: number): string {
+  if (!isFinite(seconds)) return '0:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// コントロールの自動非表示タイマーをリセット
+function resetControlsAutoHide(): void {
+  if (controlsAutoHideTimer) {
+    clearTimeout(controlsAutoHideTimer);
+  }
+
+  if (customControls) {
+    customControls.style.opacity = '1';
+
+    // 動画が一時停止中は非表示にしない
+    if (currentActiveVideo && !currentActiveVideo.paused) {
+      controlsAutoHideTimer = setTimeout(() => {
+        if (customControls) customControls.style.opacity = '0';
+      }, 3000);
+    }
+  }
+}
+
+// 独自のコントロールUIを削除する関数
+function hideCustomControls(): void {
+  if (customControls) {
+    customControls.remove();
+    customControls = null;
+  }
+  if (controlsAutoHideTimer) {
+    clearTimeout(controlsAutoHideTimer);
+    controlsAutoHideTimer = null;
+  }
+}
+
 // 快適モードを解除する関数
 function disableComfortMode(): void {
   if (!isComfortModeActive) {
@@ -1019,6 +1276,9 @@ function disableComfortMode(): void {
 
   // カーソル検出を停止
   stopCursorDetection();
+
+  // 独自のコントロールUIを削除
+  hideCustomControls();
 
   // z-index制御を解除
   removeZIndexControl();
