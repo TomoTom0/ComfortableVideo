@@ -518,10 +518,14 @@ function disableMouseEvents(): void {
       z-index: 2147483647 !important;
     }
     /* コントロール無効時のみpointer-eventsを無効化 */
-    body.comfort-mode-active:not(.video-controls-enabled) *:not(.comfort-mode-video-container):not(.comfort-mode-video-container *) {
+    body.comfort-mode-active:not(.video-controls-enabled) *:not(.comfort-mode-video-container):not(.comfort-mode-video-container *):not(#comfort-mode-exit-button):not(#comfort-mode-custom-controls):not(#comfort-mode-custom-controls *) {
       pointer-events: none !important;
     }
     body.comfort-mode-active #comfort-mode-exit-button {
+      pointer-events: auto !important;
+    }
+    body.comfort-mode-active #comfort-mode-custom-controls,
+    body.comfort-mode-active #comfort-mode-custom-controls * {
       pointer-events: auto !important;
     }
     body.comfort-mode-active .comfort-mode-video-container,
