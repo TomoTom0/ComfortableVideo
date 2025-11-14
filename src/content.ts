@@ -1030,16 +1030,24 @@ function showCustomControls(): void {
 
   // 10秒戻しボタン
   const rewind10Btn = document.createElement('button');
-  rewind10Btn.innerHTML = '⏪ 10s';
+  rewind10Btn.innerHTML = `
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M2.5 2v6h6M2.66 15.57a10 10 0 1 0 .57-8.38"/>
+      <text x="12" y="16" font-size="8" fill="currentColor" text-anchor="middle">10</text>
+    </svg>
+  `;
   rewind10Btn.style.cssText = `
     background: transparent !important;
     border: none !important;
     color: white !important;
     font-size: 14px !important;
     cursor: pointer !important;
-    padding: 8px 12px !important;
+    padding: 8px !important;
     border-radius: 4px !important;
     transition: background 0.2s !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   `;
   rewind10Btn.addEventListener('mouseenter', () => {
     rewind10Btn.style.background = 'rgba(255, 255, 255, 0.2) !important';
@@ -1056,16 +1064,27 @@ function showCustomControls(): void {
   // 再生/一時停止ボタン
   const playPauseBtn = document.createElement('button');
   playPauseBtn.id = 'comfort-play-pause-btn';
-  playPauseBtn.innerHTML = video.paused ? '▶' : '⏸';
+  playPauseBtn.innerHTML = video.paused ? `
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M8 5v14l11-7z"/>
+    </svg>
+  ` : `
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
+    </svg>
+  `;
   playPauseBtn.style.cssText = `
     background: transparent !important;
     border: none !important;
     color: white !important;
     font-size: 24px !important;
     cursor: pointer !important;
-    padding: 8px 12px !important;
+    padding: 8px !important;
     border-radius: 4px !important;
     transition: background 0.2s !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   `;
   playPauseBtn.addEventListener('mouseenter', () => {
     playPauseBtn.style.background = 'rgba(255, 255, 255, 0.2) !important';
@@ -1085,16 +1104,24 @@ function showCustomControls(): void {
 
   // 10秒送りボタン
   const forward10Btn = document.createElement('button');
-  forward10Btn.innerHTML = '10s ⏩';
+  forward10Btn.innerHTML = `
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38"/>
+      <text x="12" y="16" font-size="8" fill="currentColor" text-anchor="middle">10</text>
+    </svg>
+  `;
   forward10Btn.style.cssText = `
     background: transparent !important;
     border: none !important;
     color: white !important;
     font-size: 14px !important;
     cursor: pointer !important;
-    padding: 8px 12px !important;
+    padding: 8px !important;
     border-radius: 4px !important;
     transition: background 0.2s !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   `;
   forward10Btn.addEventListener('mouseenter', () => {
     forward10Btn.style.background = 'rgba(255, 255, 255, 0.2) !important';
@@ -1187,10 +1214,22 @@ function showCustomControls(): void {
 
   // 動画の再生状態変更イベントをリスンして、ボタンのアイコンを更新
   video.addEventListener('play', () => {
-    if (playPauseBtn) playPauseBtn.innerHTML = '⏸';
+    if (playPauseBtn) {
+      playPauseBtn.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
+        </svg>
+      `;
+    }
   });
   video.addEventListener('pause', () => {
-    if (playPauseBtn) playPauseBtn.innerHTML = '▶';
+    if (playPauseBtn) {
+      playPauseBtn.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+      `;
+    }
   });
 
   // 動画の時間更新イベントをリスンして、シークバーと時刻表示を更新
