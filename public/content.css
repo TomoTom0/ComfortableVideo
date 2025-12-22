@@ -7,46 +7,46 @@
 
 /* 解除ボタンのスタイル */
 #comfort-mode-exit-button {
-  position: fixed !important;
-  bottom: 15px !important;
-  right: 15px !important;
-  background: transparent !important; /* デフォルトは背景なし */
-  color: rgba(255, 255, 255, 0.2) !important; /* デフォルトはより薄く */
-  width: 28px !important;
-  height: 28px !important;
-  border-radius: 50% !important;
-  cursor: pointer !important;
-  z-index: 2147483648 !important; /* 最大値+1で解除ボタンを最前面に */
-  font-family: Arial, sans-serif !important;
-  font-size: 18px !important;
-  font-weight: bold !important;
-  user-select: none !important;
-  pointer-events: auto !important;
-  border: 1px solid transparent !important; /* デフォルトは境界線なし */
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: all 0.2s ease !important;
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.2);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 2147483648 !important; /* サイトの要素より前面に */
+  font-family: Arial, sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  user-select: none;
+  pointer-events: auto !important; /* サイトのpointer-events無効化を上書き */
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
 /* 動画エリア内でのボタン透明度 */
 body.comfort-mode-active.video-area-hovered #comfort-mode-exit-button {
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: rgba(255, 255, 255, 0.4) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 /* コントロール有効時のボタン透明度（最も濃く） */
 body.comfort-mode-active.video-controls-enabled #comfort-mode-exit-button {
-  background: rgba(255, 255, 255, 0.15) !important;
-  color: rgba(255, 255, 255, 0.6) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.6);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* ホバー効果はJavaScriptで制御するため、CSS側は無効化 */
 #comfort-mode-exit-button:active {
-  background: rgba(255, 255, 255, 0.3) !important;
-  transform: scale(0.95) !important;
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0.95);
 }
 
 /* 快適モード時のマウスイベント無効化 */
@@ -65,7 +65,7 @@ body.comfort-mode-active.video-controls-enabled #comfort-mode-exit-button {
 }
 
 /* 快適モード時のz-index制御 */
-body.comfort-mode-active *:not(.comfort-mode-video):not(#comfort-mode-exit-button) {
+body.comfort-mode-active *:not(.comfort-mode-video):not(.comfort-mode-video-container):not(#comfort-mode-exit-button):not(#comfort-mode-custom-controls):not(#comfort-mode-custom-controls *):not(#comfort-mode-overlay) {
   z-index: 999998 !important; /* 他の要素のz-indexを制限 */
 }
 

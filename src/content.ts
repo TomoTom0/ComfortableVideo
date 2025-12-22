@@ -62,12 +62,12 @@ function updateYouTubeButtonState(): void {
   if (!youtubeControlButton) return;
 
   if (isComfortModeActive) {
-    youtubeControlButton.style.background = 'rgba(255, 255, 255, 0.2) !important';
-    youtubeControlButton.style.opacity = '1 !important';
+    youtubeControlButton.style.background = 'rgba(255, 255, 255, 0.2)';
+    youtubeControlButton.style.opacity = '1';
     youtubeControlButton.title = chrome.i18n.getMessage('comfortModeTooltipOn');
   } else {
-    youtubeControlButton.style.background = 'transparent !important';
-    youtubeControlButton.style.opacity = '0.8 !important';
+    youtubeControlButton.style.background = 'transparent';
+    youtubeControlButton.style.opacity = '0.8';
     youtubeControlButton.title = chrome.i18n.getMessage('comfortModeTooltip');
   }
 }
@@ -145,12 +145,12 @@ function updatePrimeButtonState(): void {
   if (!primeControlButton) return;
 
   if (isComfortModeActive) {
-    primeControlButton.style.background = 'rgba(255, 255, 255, 0.2) !important';
-    primeControlButton.style.opacity = '1 !important';
+    primeControlButton.style.background = 'rgba(255, 255, 255, 0.2)';
+    primeControlButton.style.opacity = '1';
     primeControlButton.title = chrome.i18n.getMessage('comfortModeTooltipOn');
   } else {
-    primeControlButton.style.background = 'transparent !important';
-    primeControlButton.style.opacity = '0.8 !important';
+    primeControlButton.style.background = 'transparent';
+    primeControlButton.style.opacity = '0.8';
     primeControlButton.title = chrome.i18n.getMessage('comfortModeTooltip');
   }
 }
@@ -196,14 +196,14 @@ function addPrimeControlButton(): void {
   primeControlButton.addEventListener('mouseenter', () => {
     if (primeControlButton && !isComfortModeActive) {
       primeControlButton.style.opacity = '1';
-      primeControlButton.style.background = 'rgba(255, 255, 255, 0.1) !important';
+      primeControlButton.style.background = 'rgba(255, 255, 255, 0.1)';
     }
   });
 
   primeControlButton.addEventListener('mouseleave', () => {
     if (primeControlButton && !isComfortModeActive) {
       primeControlButton.style.opacity = '0.8';
-      primeControlButton.style.background = 'transparent !important';
+      primeControlButton.style.background = 'transparent';
     }
   });
 
@@ -574,7 +574,7 @@ function applyZIndexControl(): void {
     width: 100vw !important;
     height: 100vh !important;
     background: black !important;
-    z-index: 1000000 !important;
+    z-index: 999999 !important;
     pointer-events: none !important;
   `;
   // 最初の子として挿入（すべての要素より前に）
@@ -756,7 +756,7 @@ function handleMouseMove(event: MouseEvent): void {
         controlsHideOnMouseLeaveTimer = setTimeout(() => {
           if (customControls && currentActiveVideo && !currentActiveVideo.paused) {
             customControls.style.opacity = '0';
-            customControls.style.setProperty('pointer-events', 'none', 'important');
+            customControls.style.pointerEvents = 'none';
             isMonitoringMouseForControlsHide = false;
           }
           controlsHideOnMouseLeaveTimer = null;
@@ -964,19 +964,19 @@ function updateExitButtonOpacity(isInVideoArea: boolean): void {
 
   if (isVideoControlsEnabled) {
     // コントロール有効時: 最も濃く（操作中を示す）
-    exitButton.style.background = 'rgba(255, 255, 255, 0.15) !important';
-    exitButton.style.color = 'rgba(255, 255, 255, 0.6) !important';
-    exitButton.style.borderColor = 'rgba(255, 255, 255, 0.15) !important';
+    exitButton.style.background = 'rgba(255, 255, 255, 0.15)';
+    exitButton.style.color = 'rgba(255, 255, 255, 0.6)';
+    exitButton.style.borderColor = 'rgba(255, 255, 255, 0.15)';
   } else if (isInVideoArea) {
     // 動画内: 通常の透明度
-    exitButton.style.background = 'rgba(255, 255, 255, 0.1) !important';
-    exitButton.style.color = 'rgba(255, 255, 255, 0.4) !important';
-    exitButton.style.borderColor = 'rgba(255, 255, 255, 0.1) !important';
+    exitButton.style.background = 'rgba(255, 255, 255, 0.1)';
+    exitButton.style.color = 'rgba(255, 255, 255, 0.4)';
+    exitButton.style.borderColor = 'rgba(255, 255, 255, 0.1)';
   } else {
     // 動画外: 背景完全に透明、文字のみ表示
-    exitButton.style.background = 'transparent !important';
-    exitButton.style.color = 'rgba(255, 255, 255, 0.2) !important';
-    exitButton.style.borderColor = 'transparent !important';
+    exitButton.style.background = 'transparent';
+    exitButton.style.color = 'rgba(255, 255, 255, 0.2)';
+    exitButton.style.borderColor = 'transparent';
   }
 }
 
@@ -1014,9 +1014,9 @@ function showExitButton(): void {
   // ホバー効果（コントロール有効時のみ）
   exitButton.addEventListener('mouseenter', () => {
     if (exitButton && isVideoControlsEnabled) {
-      exitButton.style.background = 'rgba(255, 255, 255, 0.25) !important';
-      exitButton.style.color = 'rgba(255, 255, 255, 0.9) !important';
-      exitButton.style.borderColor = 'rgba(255, 255, 255, 0.4) !important';
+      exitButton.style.background = 'rgba(255, 255, 255, 0.25)';
+      exitButton.style.color = 'rgba(255, 255, 255, 0.9)';
+      exitButton.style.borderColor = 'rgba(255, 255, 255, 0.4)';
     }
   });
 
@@ -1096,10 +1096,10 @@ function showCustomControls(): void {
     justify-content: center !important;
   `;
   rewind30Btn.addEventListener('mouseenter', () => {
-    rewind30Btn.style.background = 'rgba(255, 255, 255, 0.2) !important';
+    rewind30Btn.style.background = 'rgba(255, 255, 255, 0.2)';
   });
   rewind30Btn.addEventListener('mouseleave', () => {
-    rewind30Btn.style.background = 'transparent !important';
+    rewind30Btn.style.background = 'transparent';
   });
   rewind30Btn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1128,10 +1128,10 @@ function showCustomControls(): void {
     justify-content: center !important;
   `;
   rewind10Btn.addEventListener('mouseenter', () => {
-    rewind10Btn.style.background = 'rgba(255, 255, 255, 0.2) !important';
+    rewind10Btn.style.background = 'rgba(255, 255, 255, 0.2)';
   });
   rewind10Btn.addEventListener('mouseleave', () => {
-    rewind10Btn.style.background = 'transparent !important';
+    rewind10Btn.style.background = 'transparent';
   });
   rewind10Btn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1164,10 +1164,10 @@ function showCustomControls(): void {
     justify-content: center !important;
   `;
   playPauseBtn.addEventListener('mouseenter', () => {
-    playPauseBtn.style.background = 'rgba(255, 255, 255, 0.2) !important';
+    playPauseBtn.style.background = 'rgba(255, 255, 255, 0.2)';
   });
   playPauseBtn.addEventListener('mouseleave', () => {
-    playPauseBtn.style.background = 'transparent !important';
+    playPauseBtn.style.background = 'transparent';
   });
   playPauseBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1201,10 +1201,10 @@ function showCustomControls(): void {
     justify-content: center !important;
   `;
   forward10Btn.addEventListener('mouseenter', () => {
-    forward10Btn.style.background = 'rgba(255, 255, 255, 0.2) !important';
+    forward10Btn.style.background = 'rgba(255, 255, 255, 0.2)';
   });
   forward10Btn.addEventListener('mouseleave', () => {
-    forward10Btn.style.background = 'transparent !important';
+    forward10Btn.style.background = 'transparent';
   });
   forward10Btn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1233,10 +1233,10 @@ function showCustomControls(): void {
     justify-content: center !important;
   `;
   forward30Btn.addEventListener('mouseenter', () => {
-    forward30Btn.style.background = 'rgba(255, 255, 255, 0.2) !important';
+    forward30Btn.style.background = 'rgba(255, 255, 255, 0.2)';
   });
   forward30Btn.addEventListener('mouseleave', () => {
-    forward30Btn.style.background = 'transparent !important';
+    forward30Btn.style.background = 'transparent';
   });
   forward30Btn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1337,7 +1337,7 @@ function showCustomControls(): void {
     // 再生開始時：マウスが動画エリアから0.5秒離れるまでコントロールを表示
     if (customControls) {
       customControls.style.opacity = '1';
-      customControls.style.setProperty('pointer-events', 'auto', 'important');
+      customControls.style.pointerEvents = 'auto';
 
       // 既存のタイマーをクリア
       if (controlsHideOnMouseLeaveTimer) {
@@ -1357,7 +1357,7 @@ function showCustomControls(): void {
         controlsHideOnMouseLeaveTimer = setTimeout(() => {
           if (customControls && currentActiveVideo && !currentActiveVideo.paused) {
             customControls.style.opacity = '0';
-            customControls.style.setProperty('pointer-events', 'none', 'important');
+            customControls.style.pointerEvents = 'none';
             isMonitoringMouseForControlsHide = false;
           }
           controlsHideOnMouseLeaveTimer = null;
@@ -1376,7 +1376,7 @@ function showCustomControls(): void {
     // 一時停止時はコントロールを表示
     if (customControls) {
       customControls.style.opacity = '1';
-      customControls.style.setProperty('pointer-events', 'auto', 'important');
+      customControls.style.pointerEvents = 'auto';
 
       // マウス位置監視を停止
       isMonitoringMouseForControlsHide = false;
