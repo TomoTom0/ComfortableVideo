@@ -1075,20 +1075,6 @@ function showCustomControls(): void {
   // コントロールコンテナを作成
   customControls = document.createElement('div');
   customControls.id = 'comfort-mode-custom-controls';
-  customControls.style.cssText = `
-    position: fixed !important;
-    bottom: 60px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    background: rgba(0, 0, 0, 0.8) !important;
-    padding: 15px 20px !important;
-    border-radius: 8px !important;
-    z-index: 2147483647 !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 15px !important;
-    transition: opacity 0.3s ease !important;
-  `;
 
   // 30秒戻しボタン
   const rewind30Btn = document.createElement('button');
@@ -1098,25 +1084,6 @@ function showCustomControls(): void {
       <text x="12" y="16" font-size="8" fill="currentColor" text-anchor="middle">30</text>
     </svg>
   `;
-  rewind30Btn.style.cssText = `
-    background: transparent !important;
-    border: none !important;
-    color: white !important;
-    font-size: 14px !important;
-    cursor: pointer !important;
-    padding: 8px !important;
-    border-radius: 4px !important;
-    transition: background 0.2s !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  `;
-  rewind30Btn.addEventListener('mouseenter', () => {
-    rewind30Btn.style.background = 'rgba(255, 255, 255, 0.2)';
-  });
-  rewind30Btn.addEventListener('mouseleave', () => {
-    rewind30Btn.style.background = 'transparent';
-  });
   rewind30Btn.addEventListener('click', (e) => {
     e.stopPropagation();
     video.currentTime = Math.max(0, video.currentTime - 30);
@@ -1130,25 +1097,6 @@ function showCustomControls(): void {
       <text x="12" y="16" font-size="8" fill="currentColor" text-anchor="middle">10</text>
     </svg>
   `;
-  rewind10Btn.style.cssText = `
-    background: transparent !important;
-    border: none !important;
-    color: white !important;
-    font-size: 14px !important;
-    cursor: pointer !important;
-    padding: 8px !important;
-    border-radius: 4px !important;
-    transition: background 0.2s !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  `;
-  rewind10Btn.addEventListener('mouseenter', () => {
-    rewind10Btn.style.background = 'rgba(255, 255, 255, 0.2)';
-  });
-  rewind10Btn.addEventListener('mouseleave', () => {
-    rewind10Btn.style.background = 'transparent';
-  });
   rewind10Btn.addEventListener('click', (e) => {
     e.stopPropagation();
     video.currentTime = Math.max(0, video.currentTime - 10);
@@ -1166,25 +1114,6 @@ function showCustomControls(): void {
       <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
     </svg>
   `;
-  playPauseBtn.style.cssText = `
-    background: transparent !important;
-    border: none !important;
-    color: white !important;
-    font-size: 24px !important;
-    cursor: pointer !important;
-    padding: 8px !important;
-    border-radius: 4px !important;
-    transition: background 0.2s !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  `;
-  playPauseBtn.addEventListener('mouseenter', () => {
-    playPauseBtn.style.background = 'rgba(255, 255, 255, 0.2)';
-  });
-  playPauseBtn.addEventListener('mouseleave', () => {
-    playPauseBtn.style.background = 'transparent';
-  });
   playPauseBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (video.paused) {
@@ -1203,25 +1132,6 @@ function showCustomControls(): void {
       <text x="12" y="16" font-size="8" fill="currentColor" text-anchor="middle">10</text>
     </svg>
   `;
-  forward10Btn.style.cssText = `
-    background: transparent !important;
-    border: none !important;
-    color: white !important;
-    font-size: 14px !important;
-    cursor: pointer !important;
-    padding: 8px !important;
-    border-radius: 4px !important;
-    transition: background 0.2s !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  `;
-  forward10Btn.addEventListener('mouseenter', () => {
-    forward10Btn.style.background = 'rgba(255, 255, 255, 0.2)';
-  });
-  forward10Btn.addEventListener('mouseleave', () => {
-    forward10Btn.style.background = 'transparent';
-  });
   forward10Btn.addEventListener('click', (e) => {
     e.stopPropagation();
     video.currentTime = Math.min(video.duration, video.currentTime + 10);
@@ -1235,25 +1145,6 @@ function showCustomControls(): void {
       <text x="12" y="16" font-size="8" fill="currentColor" text-anchor="middle">30</text>
     </svg>
   `;
-  forward30Btn.style.cssText = `
-    background: transparent !important;
-    border: none !important;
-    color: white !important;
-    font-size: 14px !important;
-    cursor: pointer !important;
-    padding: 8px !important;
-    border-radius: 4px !important;
-    transition: background 0.2s !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  `;
-  forward30Btn.addEventListener('mouseenter', () => {
-    forward30Btn.style.background = 'rgba(255, 255, 255, 0.2)';
-  });
-  forward30Btn.addEventListener('mouseleave', () => {
-    forward30Btn.style.background = 'transparent';
-  });
   forward30Btn.addEventListener('click', (e) => {
     e.stopPropagation();
     video.currentTime = Math.min(video.duration, video.currentTime + 30);
@@ -1263,12 +1154,6 @@ function showCustomControls(): void {
   const currentTimeDisplay = document.createElement('span');
   currentTimeDisplay.id = 'comfort-current-time';
   currentTimeDisplay.textContent = formatTime(video.currentTime);
-  currentTimeDisplay.style.cssText = `
-    color: white !important;
-    font-size: 14px !important;
-    min-width: 45px !important;
-    text-align: right !important;
-  `;
 
   // シークバー
   const seekBar = document.createElement('input');
@@ -1277,38 +1162,6 @@ function showCustomControls(): void {
   // durationが取得できない場合は大きな値を設定（durationchangeイベントで更新される）
   seekBar.max = String(video.duration && isFinite(video.duration) ? video.duration : 10000);
   seekBar.value = String(video.currentTime);
-  seekBar.style.cssText = `
-    width: 300px !important;
-    cursor: pointer !important;
-    -webkit-appearance: none !important;
-    appearance: none !important;
-    height: 6px !important;
-    border-radius: 3px !important;
-    background: rgba(255, 255, 255, 0.3) !important;
-    outline: none !important;
-  `;
-  // シークバーのスタイル（thumb）
-  const style = document.createElement('style');
-  style.textContent = `
-    #comfort-mode-custom-controls input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none !important;
-      appearance: none !important;
-      width: 14px !important;
-      height: 14px !important;
-      border-radius: 50% !important;
-      background: white !important;
-      cursor: pointer !important;
-    }
-    #comfort-mode-custom-controls input[type="range"]::-moz-range-thumb {
-      width: 14px !important;
-      height: 14px !important;
-      border-radius: 50% !important;
-      background: white !important;
-      cursor: pointer !important;
-      border: none !important;
-    }
-  `;
-  document.head.appendChild(style);
 
   seekBar.addEventListener('input', (e) => {
     const target = e.target as HTMLInputElement;
@@ -1323,11 +1176,6 @@ function showCustomControls(): void {
   const durationDisplay = document.createElement('span');
   durationDisplay.id = 'comfort-duration';
   durationDisplay.textContent = formatTime(isFinite(video.duration) ? video.duration : 0);
-  durationDisplay.style.cssText = `
-    color: white !important;
-    font-size: 14px !important;
-    min-width: 45px !important;
-  `;
 
   // 要素を追加
   customControls.appendChild(rewind30Btn);
