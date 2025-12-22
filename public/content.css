@@ -87,3 +87,82 @@ body.comfort-mode-active.video-controls-enabled video * {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
 }
+
+/* カスタムコントロールのスタイル */
+#comfort-mode-custom-controls {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  padding: 15px 20px;
+  border-radius: 8px;
+  z-index: 2147483647 !important; /* サイトの要素より前面に */
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  transition: opacity 0.3s ease;
+  pointer-events: auto !important; /* サイトのpointer-events無効化を上書き */
+}
+
+#comfort-mode-custom-controls button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#comfort-mode-custom-controls button.play-pause {
+  font-size: 24px;
+}
+
+#comfort-mode-custom-controls button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+#comfort-mode-custom-controls .time-display {
+  color: white;
+  font-size: 14px;
+  min-width: 45px;
+}
+
+#comfort-mode-custom-controls .time-display.current {
+  text-align: right;
+}
+
+#comfort-mode-custom-controls input[type="range"] {
+  width: 300px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.3);
+  outline: none;
+}
+
+#comfort-mode-custom-controls input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+}
+
+#comfort-mode-custom-controls input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  border: none;
+}

@@ -875,15 +875,31 @@ function handleClick(event: MouseEvent): void {
     }
   });
 
-  // 動画エリアをクリックした場合、再生/一時停止をトグル
+  // 動画エリアをクリックした場合の処理
   if (clickedVideo !== null) {
     const video: HTMLVideoElement = clickedVideo;
-    if (video.paused) {
-      video.play();
+    const rect = video.getBoundingClientRect();
+    const bottomAreaHeight = rect.height * 0.2;
+    const bottomAreaTop = rect.bottom - bottomAreaHeight;
+
+    if (event.clientY >= bottomAreaTop) {
+      // 下部20%をクリックした場合、即座にコントロール有効化
+      if (cursorTimer) {
+        clearTimeout(cursorTimer);
+        cursorTimer = null;
+      }
+      if (!isVideoControlsEnabled) {
+        enableVideoControls();
+      }
     } else {
-      video.pause();
+      // 上部80%をクリックした場合、再生/一時停止をトグル
+      if (video.paused) {
+        video.play();
+      } else {
+        video.pause();
+      }
+      // play/pauseイベントで自動的にコントロールの表示が切り替わる
     }
-    // play/pauseイベントで自動的にコントロールの表示が切り替わる
   }
 }
 
