@@ -35,6 +35,9 @@ let primeControlButton: HTMLElement | null = null;
 // YouTube親要素の元のz-indexを保存するMap（nullは元々inline styleがなかったことを示す）
 let originalParentZIndex: Map<HTMLElement, string | null> = new Map();
 
+// .comfort-mode-video-containerクラスを持つ要素の元のinline styleを保存するMap
+let originalContainerStyles: Map<HTMLElement, string | null> = new Map();
+
 // z-index制御用のスタイル要素
 let zIndexStyle: HTMLStyleElement | null = null;
 
@@ -346,6 +349,10 @@ function enableComfortMode(): void {
           while (parent && parent !== document.body) {
             const parentStyle = window.getComputedStyle(parent);
             if (parentStyle.position !== 'static') {
+              // 元のinline styleを保存
+              const currentInlineStyle = parent.getAttribute('style');
+              originalContainerStyles.set(parent, currentInlineStyle);
+
               parent.style.setProperty('z-index', '2147483647', 'important');
               parent.classList.add('comfort-mode-video-container');
               break;
@@ -359,6 +366,10 @@ function enableComfortMode(): void {
         while (parent && parent !== document.body) {
           const parentStyle = window.getComputedStyle(parent);
           if (parentStyle.position !== 'static') {
+            // 元のinline styleを保存
+            const currentInlineStyle = parent.getAttribute('style');
+            originalContainerStyles.set(parent, currentInlineStyle);
+
             parent.style.setProperty('z-index', '2147483647', 'important');
             parent.classList.add('comfort-mode-video-container');
             break;
@@ -493,6 +504,10 @@ function maximizeVideo(video: HTMLVideoElement): void {
       // .html5-video-containerのz-indexも調整
       const videoContainer = player.querySelector('.html5-video-container') as HTMLElement;
       if (videoContainer) {
+        // 元のinline styleを保存
+        const currentInlineStyle = videoContainer.getAttribute('style');
+        originalContainerStyles.set(videoContainer, currentInlineStyle);
+
         videoContainer.style.setProperty('z-index', '2147483647', 'important');
         videoContainer.classList.add('comfort-mode-video-container');
       }
@@ -515,6 +530,10 @@ function maximizeVideo(video: HTMLVideoElement): void {
       let depth = 0;
       // 最大5階層まで親要素のz-indexを設定
       while (parent && parent !== document.body && depth < 5) {
+        // 元のinline styleを保存
+        const currentInlineStyle = parent.getAttribute('style');
+        originalContainerStyles.set(parent, currentInlineStyle);
+
         parent.style.setProperty('z-index', '2147483646', 'important');
         parent.classList.add('comfort-mode-video-container');
         parent = parent.parentElement;
@@ -969,7 +988,25 @@ function checkVideoEnded(): void {
 
   // すべての動画が終了した場合、快適モードを解除
   if (allEnded) {
-    disableComfortMode();
+    console.log('[Comfortable Video] 動画が終了したため、快適モードを自動解除します');
+    // 少し遅延させて、YouTube側のスタイル変更前に解除
+    setTimeout(() => {
+      disableComfortMode();
+    }, 50);
+  }
+}
+
+// 動画の残り時間をチェックして終了間近を検出
+function checkVideoNearEnd(): void {
+  if (!isComfortModeActive || !currentActiveVideo) return;
+
+  const video = currentActiveVideo;
+  const remainingTime = video.duration - video.currentTime;
+
+  // 残り0.5秒以下で終了間近と判断（次回のtimeupdateで終了判定）
+  if (isFinite(remainingTime) && remainingTime <= 0.5 && remainingTime > 0) {
+    // 終了間近のフラグを設定（必要に応じて使用）
+    (video as any).__nearEnd = true;
   }
 }
 
@@ -1255,6 +1292,9 @@ function showCustomControls(): void {
   video.addEventListener('timeupdate', () => {
     if (seekBar) seekBar.value = String(video.currentTime);
     if (currentTimeDisplay) currentTimeDisplay.textContent = formatTime(video.currentTime);
+
+    // 動画終了間近をチェック
+    checkVideoNearEnd();
   });
 
   // 動画の長さ変更イベントをリスンして、シークバーの最大値と総時間表示を更新
@@ -1385,13 +1425,22 @@ function disableComfortMode(): void {
     video.classList.remove('comfort-mode-video-container');
   });
 
-  // .comfort-mode-video-containerクラスを持つすべての要素のz-indexを復元
-  const videoContainers = document.querySelectorAll('.comfort-mode-video-container');
-  videoContainers.forEach(container => {
-    const elem = container as HTMLElement;
-    elem.style.removeProperty('z-index');
-    elem.classList.remove('comfort-mode-video-container');
+  // .comfort-mode-video-containerクラスを持つすべての要素のスタイルを復元
+  originalContainerStyles.forEach((originalInlineStyle, container) => {
+    // 元のinline styleを復元
+    if (originalInlineStyle !== null && originalInlineStyle !== '') {
+      container.setAttribute('style', originalInlineStyle);
+    } else {
+      // 元々inline styleがなかった場合は、追加したプロパティを削除
+      container.style.removeProperty('z-index');
+      // 完全にstyle属性がなくなった場合は削除
+      if (container.getAttribute('style') === '') {
+        container.removeAttribute('style');
+      }
+    }
+    container.classList.remove('comfort-mode-video-container');
   });
+  originalContainerStyles.clear();
 
   originalVideoStyles.clear();
 
@@ -1507,13 +1556,66 @@ function startVideoWatcher(): void {
           }
         });
       }
+
+      // スタイル属性の変更を監視（YouTube側の強制的なスタイル書き換えを検出）
+      if (mutation.type === 'attributes' && (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+        const target = mutation.target as HTMLElement;
+
+        // YouTube側が#movie_playerやvideo要素のスタイルを変更した場合
+        if (isYouTube()) {
+          // #movie_playerのスタイル変更をチェック
+          if (target.id === 'movie_player' || target === currentActiveVideo) {
+            const computedStyle = window.getComputedStyle(target);
+
+            // z-indexが我々が設定した値から大幅に変更された場合
+            const currentZIndex = parseInt(computedStyle.zIndex) || 0;
+            const expectedZIndex = 2147483647;
+
+            // z-indexが期待値から大きく外れた場合（YouTubeの書き換えと判断）
+            if (currentZIndex < expectedZIndex - 1000) {
+              console.log('[Comfortable Video] YouTube側でスタイルが書き換えられたため、快適モードを自動解除します');
+              disableComfortMode();
+              return;
+            }
+
+            // positionが我々が設定した値から変更された場合
+            if (target.id === 'movie_player') {
+              const expectedPosition = 'fixed';
+              if (computedStyle.position !== expectedPosition && computedStyle.position !== 'static') {
+                // positionがfixed以外に変更された場合（staticは初期値なので除外）
+                const inlineStyle = target.style.position;
+                if (inlineStyle && inlineStyle !== expectedPosition && inlineStyle !== '') {
+                  console.log('[Comfortable Video] YouTube側でpositionが書き換えられたため、快適モードを自動解除します');
+                  disableComfortMode();
+                  return;
+                }
+              }
+            }
+          }
+
+          // .comfort-mode-video-containerクラスを持つ要素のスタイル変更もチェック
+          if (target.classList.contains('comfort-mode-video-container')) {
+            const computedStyle = window.getComputedStyle(target);
+            const currentZIndex = parseInt(computedStyle.zIndex) || 0;
+
+            // z-indexが大幅に変更された場合
+            if (currentZIndex < 2147483640) {
+              console.log('[Comfortable Video] YouTube側でコンテナのz-indexが書き換えられたため、快適モードを自動解除します');
+              disableComfortMode();
+              return;
+            }
+          }
+        }
+      }
     });
   });
 
-  // DOM全体を監視（subtree: true で子孫要素も監視）
+  // DOM全体を監視（subtree: true で子孫要素も監視、attributes: true でスタイル属性変更も監視）
   videoWatcher.observe(document.body, {
     childList: true,
-    subtree: true
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['style', 'class']
   });
 
   // 動画終了イベントのリスナーを追加
