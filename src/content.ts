@@ -353,7 +353,7 @@ function debugStackingContext(element: HTMLElement): void {
     const computed = window.getComputedStyle(current);
     const tagName = current.tagName.toLowerCase();
     const id = current.id ? `#${current.id}` : '';
-    const classes = current.className ? `.${current.className.toString().split(' ').join('.')}` : '';
+    const classes = current.classList.length > 0 ? '.' + Array.from(current.classList).join('.') : '';
     const selector = `${tagName}${id}${classes}`;
 
     // スタッキングコンテキストを作成する条件をチェック

@@ -2,61 +2,20 @@
 function showConfirmDialog(message) {
     return new Promise((resolve) => {
         const overlay = document.createElement('div');
-        overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-    `;
+        overlay.className = 'confirm-dialog-overlay';
         const dialog = document.createElement('div');
-        dialog.style.cssText = `
-      background: white;
-      padding: 24px;
-      border-radius: 8px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-      max-width: 400px;
-      text-align: center;
-    `;
+        dialog.className = 'confirm-dialog';
         const messageEl = document.createElement('p');
+        messageEl.className = 'confirm-dialog-message';
         messageEl.textContent = message;
-        messageEl.style.cssText = `
-      margin: 0 0 20px 0;
-      font-size: 14px;
-      color: #333;
-    `;
         const buttonContainer = document.createElement('div');
-        buttonContainer.style.cssText = `
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-    `;
+        buttonContainer.className = 'confirm-dialog-buttons';
         const cancelButton = document.createElement('button');
+        cancelButton.className = 'confirm-dialog-button confirm-dialog-button-cancel';
         cancelButton.textContent = chrome.i18n.getMessage('cancel') || 'キャンセル';
-        cancelButton.style.cssText = `
-      padding: 8px 16px;
-      border: 1px solid #ccc;
-      background: white;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    `;
         const confirmButton = document.createElement('button');
+        confirmButton.className = 'confirm-dialog-button confirm-dialog-button-confirm';
         confirmButton.textContent = chrome.i18n.getMessage('ok') || 'OK';
-        confirmButton.style.cssText = `
-      padding: 8px 16px;
-      border: none;
-      background: #4285f4;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    `;
         cancelButton.addEventListener('click', () => {
             overlay.remove();
             resolve(false);
