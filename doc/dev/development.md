@@ -163,19 +163,19 @@ body.comfort-mode-active #comfort-mode-exit-button {
 
 ### 1. 環境セットアップ
 ```bash
-npm install
+bun install
 ```
 
 ### 2. 開発時
 ```bash
-npm run watch    # ファイル変更を監視
+bun run watch    # ファイル変更を監視
 ```
 
 ### 3. ビルドとデプロイ
 ```bash
-npm run build        # 通常ビルド
-npm run rebuild      # クリーンビルド
-./build-and-deploy.sh # ビルドとデプロイを一括実行
+bun run build        # 通常ビルド
+bun run rebuild      # クリーンビルド
+bun run deploy       # ビルドとデプロイを一括実行
 ```
 
 #### 環境設定
