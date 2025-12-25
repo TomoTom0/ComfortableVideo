@@ -1,4 +1,86 @@
 "use strict";
+function showConfirmDialog(message) {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    `;
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      max-width: 400px;
+      text-align: center;
+    `;
+        const messageEl = document.createElement('p');
+        messageEl.textContent = message;
+        messageEl.style.cssText = `
+      margin: 0 0 20px 0;
+      font-size: 14px;
+      color: #333;
+    `;
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    `;
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = chrome.i18n.getMessage('cancel') || 'キャンセル';
+        cancelButton.style.cssText = `
+      padding: 8px 16px;
+      border: 1px solid #ccc;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    `;
+        const confirmButton = document.createElement('button');
+        confirmButton.textContent = chrome.i18n.getMessage('ok') || 'OK';
+        confirmButton.style.cssText = `
+      padding: 8px 16px;
+      border: none;
+      background: #4285f4;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    `;
+        cancelButton.addEventListener('click', () => {
+            overlay.remove();
+            resolve(false);
+        });
+        confirmButton.addEventListener('click', () => {
+            overlay.remove();
+            resolve(true);
+        });
+        buttonContainer.appendChild(cancelButton);
+        buttonContainer.appendChild(confirmButton);
+        dialog.appendChild(messageEl);
+        dialog.appendChild(buttonContainer);
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        const handleKeydown = (e) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                resolve(false);
+                document.removeEventListener('keydown', handleKeydown);
+            }
+        };
+        document.addEventListener('keydown', handleKeydown);
+    });
+}
 const defaultSettings = {
     hoverDetectionTime: 2000,
     controlsDisableTime: 3000,
@@ -50,7 +132,7 @@ async function loadSettings() {
     }
     catch (error) {
         console.error('設定の読み込みに失敗しました:', error);
-        showToast(chrome.i18n.getMessage('settingsLoadError'), 'error');
+        showOptionsToast(chrome.i18n.getMessage('settingsLoadError'), 'error');
     }
 }
 async function saveSettings() {
@@ -68,7 +150,7 @@ async function saveSettings() {
             exitButtonOpacity: parseInt(elements.exitButtonOpacity.value)
         };
         await chrome.storage.sync.set(settings);
-        showToast(chrome.i18n.getMessage('settingsSaved'), 'success');
+        showOptionsToast(chrome.i18n.getMessage('settingsSaved'), 'success');
         try {
             chrome.runtime.sendMessage({
                 action: 'updateContextMenus',
@@ -92,21 +174,21 @@ async function saveSettings() {
     }
     catch (error) {
         console.error('設定の保存に失敗しました:', error);
-        showToast(chrome.i18n.getMessage('settingsSaveError'), 'error');
+        showOptionsToast(chrome.i18n.getMessage('settingsSaveError'), 'error');
     }
 }
 async function resetSettings() {
     try {
         await chrome.storage.sync.set(defaultSettings);
         await loadSettings();
-        showToast(chrome.i18n.getMessage('settingsReset'), 'success');
+        showOptionsToast(chrome.i18n.getMessage('settingsReset'), 'success');
     }
     catch (error) {
         console.error('設定のリセットに失敗しました:', error);
-        showToast(chrome.i18n.getMessage('settingsResetError'), 'error');
+        showOptionsToast(chrome.i18n.getMessage('settingsResetError'), 'error');
     }
 }
-function showToast(message, type = 'success') {
+function showOptionsToast(message, type = 'success') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
@@ -136,8 +218,9 @@ function updateSliderValues() {
 }
 function setupEventListeners() {
     elements.saveButton.addEventListener('click', saveSettings);
-    elements.resetButton.addEventListener('click', () => {
-        if (confirm(chrome.i18n.getMessage('resetConfirm'))) {
+    elements.resetButton.addEventListener('click', async () => {
+        const confirmed = await showConfirmDialog(chrome.i18n.getMessage('resetConfirm'));
+        if (confirmed) {
             resetSettings();
         }
     });

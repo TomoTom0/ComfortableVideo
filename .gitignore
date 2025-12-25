@@ -25,6 +25,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.log
+*.backup
 tmp/
 diagnostics.json
 step-*.json
