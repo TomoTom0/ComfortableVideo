@@ -10,8 +10,7 @@ Comfortable Video Chrome拡張機能の開発環境構築から実装、テス�
 
 | ソフトウェア | バージョン | 用途 |
 |-------------|-----------|------|
-| Node.js | v16以上 | TypeScript実行環境 |
-| npm | v8以上 | パッケージ管理 |
+| Bun | v1.0以上 | パッケージ管理・実行環境 |
 | TypeScript | v5.0以上 | 型安全な開発 |
 | Chrome | 最新版 | テスト・デバッグ |
 | Git | v2.0以上 | バージョン管理 |
@@ -24,13 +23,13 @@ git clone [repository-url]
 cd comfortable-movie
 
 # 依存関係のインストール
-npm install
+bun install
 
 # 初回ビルド
-npm run build
+bun run build
 
 # 開発モードでの監視開始
-npm run watch
+bun run watch
 ```
 
 ### 開発用設定ファイル
@@ -59,11 +58,11 @@ npm run watch
 ```json
 {
   "scripts": {
-    "build": "tsc && npm run copy-assets",
+    "build": "tsc && bun run copy-assets",
     "copy-assets": "cp manifest.json dist/ && cp src/*.css dist/ 2>/dev/null || true && cp src/*.html dist/ 2>/dev/null || true && cp -r icons dist/ 2>/dev/null || true",
     "watch": "tsc --watch",
     "clean": "rm -rf dist",
-    "rebuild": "npm run clean && npm run build"
+    "rebuild": "bun run clean && bun run build"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
@@ -529,13 +528,13 @@ git push origin v1.1.0
 1. **TypeScriptコンパイルエラー**
    ```bash
    # 型定義の確認
-   npm list @types/chrome
+   bun pm ls @types/chrome
 
    # TypeScriptバージョン確認
    npx tsc --version
 
    # クリーンビルド
-   npm run clean && npm run build
+   bun run clean && bun run build
    ```
 
 2. **Chrome拡張機能が動作しない**

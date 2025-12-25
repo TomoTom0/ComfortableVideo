@@ -13,6 +13,59 @@ interface ComfortModeSettings {
   exitButtonOpacity: number;
 }
 
+// カスタム確認ダイアログを表示
+function showConfirmDialog(message: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-dialog-overlay';
+
+    const dialog = document.createElement('div');
+    dialog.className = 'confirm-dialog';
+
+    const messageEl = document.createElement('p');
+    messageEl.className = 'confirm-dialog-message';
+    messageEl.textContent = message;
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'confirm-dialog-buttons';
+
+    const cancelButton = document.createElement('button');
+    cancelButton.className = 'confirm-dialog-button confirm-dialog-button-cancel';
+    cancelButton.textContent = chrome.i18n.getMessage('cancel') || 'キャンセル';
+
+    const confirmButton = document.createElement('button');
+    confirmButton.className = 'confirm-dialog-button confirm-dialog-button-confirm';
+    confirmButton.textContent = chrome.i18n.getMessage('ok') || 'OK';
+
+    cancelButton.addEventListener('click', () => {
+      overlay.remove();
+      resolve(false);
+    });
+
+    confirmButton.addEventListener('click', () => {
+      overlay.remove();
+      resolve(true);
+    });
+
+    buttonContainer.appendChild(cancelButton);
+    buttonContainer.appendChild(confirmButton);
+    dialog.appendChild(messageEl);
+    dialog.appendChild(buttonContainer);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    // ESCキーでキャンセル
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        overlay.remove();
+        resolve(false);
+        document.removeEventListener('keydown', handleKeydown);
+      }
+    };
+    document.addEventListener('keydown', handleKeydown);
+  });
+}
+
 // デフォルト設定
 const defaultSettings: ComfortModeSettings = {
   hoverDetectionTime: 2000,
@@ -74,7 +127,7 @@ async function loadSettings(): Promise<void> {
 
   } catch (error) {
     console.error('設定の読み込みに失敗しました:', error);
-    showToast(chrome.i18n.getMessage('settingsLoadError'), 'error');
+    showOptionsToast(chrome.i18n.getMessage('settingsLoadError'), 'error');
   }
 }
 
@@ -95,7 +148,7 @@ async function saveSettings(): Promise<void> {
     };
 
     await chrome.storage.sync.set(settings);
-    showToast(chrome.i18n.getMessage('settingsSaved'), 'success');
+    showOptionsToast(chrome.i18n.getMessage('settingsSaved'), 'success');
 
     // バックグラウンドスクリプトに設定変更を通知（コンテキストメニュー更新のため）
     try {
@@ -122,7 +175,7 @@ async function saveSettings(): Promise<void> {
 
   } catch (error) {
     console.error('設定の保存に失敗しました:', error);
-    showToast(chrome.i18n.getMessage('settingsSaveError'), 'error');
+    showOptionsToast(chrome.i18n.getMessage('settingsSaveError'), 'error');
   }
 }
 
@@ -131,15 +184,15 @@ async function resetSettings(): Promise<void> {
   try {
     await chrome.storage.sync.set(defaultSettings);
     await loadSettings();
-    showToast(chrome.i18n.getMessage('settingsReset'), 'success');
+    showOptionsToast(chrome.i18n.getMessage('settingsReset'), 'success');
   } catch (error) {
     console.error('設定のリセットに失敗しました:', error);
-    showToast(chrome.i18n.getMessage('settingsResetError'), 'error');
+    showOptionsToast(chrome.i18n.getMessage('settingsResetError'), 'error');
   }
 }
 
 // トースト通知を表示
-function showToast(message: string, type: 'success' | 'error' = 'success'): void {
+function showOptionsToast(message: string, type: 'success' | 'error' = 'success'): void {
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.textContent = message;
@@ -179,8 +232,9 @@ function updateSliderValues(): void {
 // イベントリスナーの設定
 function setupEventListeners(): void {
   elements.saveButton.addEventListener('click', saveSettings);
-  elements.resetButton.addEventListener('click', () => {
-    if (confirm(chrome.i18n.getMessage('resetConfirm'))) {
+  elements.resetButton.addEventListener('click', async () => {
+    const confirmed = await showConfirmDialog(chrome.i18n.getMessage('resetConfirm'));
+    if (confirmed) {
       resetSettings();
     }
   });

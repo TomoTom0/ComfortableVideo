@@ -32,11 +32,14 @@ let youtubeControlButton: HTMLElement | null = null;
 // Amazon Prime Video用コントロールボタンの要素
 let primeControlButton: HTMLElement | null = null;
 
-// YouTube親要素の元のz-indexを保存するMap（nullは元々inline styleがなかったことを示す）
-let originalParentZIndex: Map<HTMLElement, string | null> = new Map();
-
 // z-index制御用のスタイル要素
 let zIndexStyle: HTMLStyleElement | null = null;
+
+// 動画要素の元の親要素と位置を記憶
+let originalVideoParent: {
+  parent: HTMLElement;
+  nextSibling: Node | null;
+} | null = null;
 
 // カーソル検出用の変数
 let cursorTimer: ReturnType<typeof setTimeout> | null = null;
@@ -301,22 +304,184 @@ function setupYouTubeObserver(): void {
   setTimeout(addYouTubeControlButton, 1000);
 }
 
+// トースト通知を表示する関数
+function showContentToast(message: string, duration: number = 3000): void {
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed !important;
+    top: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: white !important;
+    padding: 12px 24px !important;
+    border-radius: 8px !important;
+    z-index: 2147483647 !important;
+    font-family: Arial, sans-serif !important;
+    font-size: 14px !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s ease !important;
+  `;
+
+  document.body.appendChild(toast);
+
+  // フェードイン
+  setTimeout(() => {
+    toast.style.opacity = '1';
+  }, 10);
+
+  // フェードアウトして削除
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => {
+      toast.remove();
+    }, 300);
+  }, duration);
+}
+
+// デバッグ: スタッキングコンテキストを作成する親要素を検出
+function debugStackingContext(element: HTMLElement): void {
+  console.debug('[Comfortable Video] スタッキングコンテキスト解析開始');
+  console.debug('[Comfortable Video] 対象要素:', element);
+
+  let current: HTMLElement | null = element;
+  let depth = 0;
+
+  while (current && current !== document.documentElement.parentElement) {
+    const computed = window.getComputedStyle(current);
+    const tagName = current.tagName.toLowerCase();
+    const id = current.id ? `#${current.id}` : '';
+    const classes = current.classList.length > 0 ? '.' + Array.from(current.classList).join('.') : '';
+    const selector = `${tagName}${id}${classes}`;
+
+    // スタッキングコンテキストを作成する条件をチェック
+    const stackingInfo: string[] = [];
+
+    // 1. position + z-index
+    const position = computed.position;
+    const zIndex = computed.zIndex;
+    if (position !== 'static') {
+      stackingInfo.push(`position: ${position}`);
+      if (zIndex !== 'auto') {
+        stackingInfo.push(`z-index: ${zIndex} ⚠️ スタッキングコンテキスト作成`);
+      }
+    }
+
+    // 2. opacity
+    const opacity = computed.opacity;
+    if (opacity !== '1') {
+      stackingInfo.push(`opacity: ${opacity} ⚠️ スタッキングコンテキスト作成`);
+    }
+
+    // 3. transform
+    const transform = computed.transform;
+    if (transform !== 'none') {
+      stackingInfo.push(`transform: ${transform} ⚠️ スタッキングコンテキスト作成`);
+    }
+
+    // 4. filter
+    const filter = computed.filter;
+    if (filter !== 'none') {
+      stackingInfo.push(`filter: ${filter} ⚠️ スタッキングコンテキスト作成`);
+    }
+
+    // 5. perspective
+    const perspective = computed.perspective;
+    if (perspective !== 'none') {
+      stackingInfo.push(`perspective: ${perspective} ⚠️ スタッキングコンテキスト作成`);
+    }
+
+    // 6. clip-path
+    const clipPath = computed.clipPath;
+    if (clipPath !== 'none') {
+      stackingInfo.push(`clip-path: ${clipPath} ⚠️ スタッキングコンテキスト作成`);
+    }
+
+    // 7. mask
+    const mask = computed.mask || (computed as any).webkitMask;
+    if (mask && mask !== 'none') {
+      stackingInfo.push(`mask: ${mask} ⚠️ スタッキングコンテキスト作成`);
+    }
+
+    // 8. mix-blend-mode
+    const mixBlendMode = computed.mixBlendMode;
+    if (mixBlendMode !== 'normal') {
+      stackingInfo.push(`mix-blend-mode: ${mixBlendMode} ⚠️ スタッキングコンテキスト作成`);
+    }
+
+    // 9. isolation
+    const isolation = computed.isolation;
+    if (isolation === 'isolate') {
+      stackingInfo.push(`isolation: ${isolation} ⚠️ スタッキングコンテキスト作成`);
+    }
+
+    // 10. will-change
+    const willChange = computed.willChange;
+    if (willChange !== 'auto') {
+      stackingInfo.push(`will-change: ${willChange}`);
+    }
+
+    // 11. contain
+    const contain = computed.contain;
+    if (contain !== 'none') {
+      stackingInfo.push(`contain: ${contain}`);
+      if (contain.includes('layout') || contain.includes('paint') || contain.includes('strict') || contain.includes('content')) {
+        stackingInfo[stackingInfo.length - 1] += ' ⚠️ スタッキングコンテキスト作成';
+      }
+    }
+
+    // 情報がある場合のみ出力
+    if (stackingInfo.length > 0) {
+      console.debug(`[Comfortable Video] [深さ${depth}] ${selector}`, stackingInfo.join(', '));
+    }
+
+    current = current.parentElement;
+    depth++;
+
+    // 無限ループ防止
+    if (depth > 50) {
+      console.debug('[Comfortable Video] デバッグ: 深さ50に到達したため終了');
+      break;
+    }
+  }
+
+  console.debug('[Comfortable Video] スタッキングコンテキスト解析終了');
+}
+
 // 動画要素を検出し、快適モードを適用する関数
 function enableComfortMode(): void {
+  console.log('[Comfortable Video] enableComfortMode() called');
   const videos = document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>;
+  console.log('[Comfortable Video] Found video elements:', videos.length);
 
   if (videos.length === 0) {
-    alert(chrome.i18n.getMessage('noVideoFound'));
+    console.log('[Comfortable Video] No video elements found');
+    showContentToast(chrome.i18n.getMessage('noVideoFound'));
     return;
   }
+
+  // 各動画要素の状態をログ出力
+  videos.forEach((video, index) => {
+    console.log(`[Comfortable Video] Video ${index}:`, {
+      videoWidth: video.videoWidth,
+      videoHeight: video.videoHeight,
+      readyState: video.readyState,
+      src: video.src || video.currentSrc
+    });
+  });
 
   isComfortModeActive = true;
 
   videos.forEach(video => {
     if (video.videoWidth > 0 && video.videoHeight > 0) {
+      console.log('[Comfortable Video] Processing video with valid dimensions:', video);
       // 最初に見つかった有効な動画をアクティブ動画として記録
       if (!currentActiveVideo) {
         currentActiveVideo = video;
+        // デバッグ: スタッキングコンテキストを解析
+        debugStackingContext(video);
       }
 
       // 元のスタイルを保存
@@ -337,37 +502,22 @@ function enableComfortMode(): void {
 
       // 動画にクラスを追加
       video.classList.add('comfort-mode-video');
-
-      // YouTubeの場合は#movie_playerの親要素のz-indexも設定
-      if (isYouTube()) {
-        const player = document.getElementById('movie_player');
-        if (player) {
-          let parent = player.parentElement;
-          while (parent && parent !== document.body) {
-            const parentStyle = window.getComputedStyle(parent);
-            if (parentStyle.position !== 'static') {
-              parent.style.setProperty('z-index', '2147483647', 'important');
-              parent.classList.add('comfort-mode-video-container');
-              break;
-            }
-            parent = parent.parentElement;
-          }
-        }
-      } else {
-        // 他のサイトでは動画の親要素のz-indexを設定
-        let parent = video.parentElement;
-        while (parent && parent !== document.body) {
-          const parentStyle = window.getComputedStyle(parent);
-          if (parentStyle.position !== 'static') {
-            parent.style.setProperty('z-index', '2147483647', 'important');
-            parent.classList.add('comfort-mode-video-container');
-            break;
-          }
-          parent = parent.parentElement;
-        }
-      }
+    } else {
+      console.log('[Comfortable Video] Skipping video (no valid dimensions):', {
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight
+      });
     }
   });
+
+  if (!currentActiveVideo) {
+    console.error('[Comfortable Video] No valid video found (all videos have zero dimensions)');
+    showContentToast('動画の読み込みを待っています...');
+    isComfortModeActive = false;
+    return;
+  }
+
+  console.log('[Comfortable Video] Active video set, applying comfort mode');
 
   // 動画要素の監視を開始
   startVideoWatcher();
@@ -392,40 +542,6 @@ function enableComfortMode(): void {
 
   // Prime Videoボタンの状態を更新
   updatePrimeButtonState();
-  
-  // YouTube特有の親要素のz-indexを調整
-  if (isYouTube()) {
-    const ytdApp = document.querySelector('ytd-app') as HTMLElement;
-    if (ytdApp) {
-      // 元のinline styleのz-indexを保存（なければnull）
-      const currentInlineZIndex = ytdApp.style.zIndex || null;
-      originalParentZIndex.set(ytdApp, currentInlineZIndex);
-      ytdApp.style.setProperty('z-index', 'auto', 'important');
-    }
-    // 他の親要素も調整
-    const parentSelectors = [
-      '#player-container-inner',
-      '#player-container-outer',
-      '#player',
-      '#primary-inner',
-      '#primary',
-      '#columns',
-      'ytd-watch-flexy',
-      'ytd-page-manager',
-      '#content',
-      'ytd-player',
-      '#container'
-    ];
-    parentSelectors.forEach(selector => {
-      const el = document.querySelector(selector) as HTMLElement;
-      if (el) {
-        // 元のinline styleのz-indexを保存（なければnull）
-        const currentInlineZIndex = el.style.zIndex || null;
-        originalParentZIndex.set(el, currentInlineZIndex);
-        el.style.setProperty('z-index', 'auto', 'important');
-      }
-    });
-  }
 }
 
 // 動画を画面いっぱいに最大化する関数
@@ -476,8 +592,7 @@ function maximizeVideo(video: HTMLVideoElement): void {
       player.style.setProperty('width', `${newWidth}px`, 'important');
       player.style.setProperty('height', `${newHeight}px`, 'important');
       player.style.setProperty('z-index', '2147483647', 'important');
-      player.classList.add('comfort-mode-video-container');
-      
+
       // YouTubeのvideo要素も調整
       video.style.cssText += `
         position: static !important;
@@ -489,16 +604,27 @@ function maximizeVideo(video: HTMLVideoElement): void {
         top: auto !important;
         left: auto !important;
       `;
-      
-      // .html5-video-containerのz-indexも調整
-      const videoContainer = player.querySelector('.html5-video-container') as HTMLElement;
-      if (videoContainer) {
-        videoContainer.style.setProperty('z-index', '2147483647', 'important');
-        videoContainer.classList.add('comfort-mode-video-container');
-      }
     }
   } else {
     // 他のサイトでは動画要素を直接拡大
+    console.log('[Comfortable Video] Moving video to body to escape stacking context');
+
+    // 元の親要素と位置を記憶
+    if (video.parentElement) {
+      originalVideoParent = {
+        parent: video.parentElement,
+        nextSibling: video.nextSibling
+      };
+      console.log('[Comfortable Video] Saved original parent:', {
+        parent: originalVideoParent.parent.tagName,
+        hasNextSibling: !!originalVideoParent.nextSibling
+      });
+    }
+
+    // 動画要素をbodyに移動（親要素のスタッキングコンテキストから完全に独立）
+    document.body.appendChild(video);
+    console.log('[Comfortable Video] Video moved to body');
+
     // setProperty()を使用して元のスタイルを保持
     video.style.setProperty('position', 'fixed', 'important');
     video.style.setProperty('top', `${offsetY}px`, 'important');
@@ -508,34 +634,17 @@ function maximizeVideo(video: HTMLVideoElement): void {
     video.style.setProperty('z-index', '2147483647', 'important');
     video.style.setProperty('object-fit', 'fill', 'important');
     video.style.setProperty('transform', 'none', 'important');
-
-    // YouTubeやPrime Videoの場合、親要素のz-indexも調整
-    if (isYouTube() || isPrimeVideo()) {
-      let parent = video.parentElement;
-      let depth = 0;
-      // 最大5階層まで親要素のz-indexを設定
-      while (parent && parent !== document.body && depth < 5) {
-        parent.style.setProperty('z-index', '2147483646', 'important');
-        parent.classList.add('comfort-mode-video-container');
-        parent = parent.parentElement;
-        depth++;
-      }
-    }
   }
 }
 
 // マウスイベントを無効化する関数（改良版）
 function disableMouseEvents(): void {
+  console.log('[Comfortable Video] Disabling mouse events');
   const style = document.createElement('style');
   style.id = 'comfort-mode-style';
   style.textContent = `
-    /* 動画コンテナとその子要素を最前面に */
-    body.comfort-mode-active .comfort-mode-video-container,
-    body.comfort-mode-active .comfort-mode-video-container * {
-      z-index: 2147483647 !important;
-    }
     /* コントロール無効時のみpointer-eventsを無効化 */
-    body.comfort-mode-active:not(.video-controls-enabled) *:not(.comfort-mode-video-container):not(.comfort-mode-video-container *):not(#comfort-mode-exit-button):not(#comfort-mode-custom-controls):not(#comfort-mode-custom-controls *) {
+    body.comfort-mode-active:not(.video-controls-enabled) *:not(.comfort-mode-video):not(#comfort-mode-exit-button):not(#comfort-mode-custom-controls):not(#comfort-mode-custom-controls *):not(#movie_player):not(#movie_player *) {
       pointer-events: none !important;
     }
     body.comfort-mode-active #comfort-mode-exit-button {
@@ -545,17 +654,18 @@ function disableMouseEvents(): void {
     body.comfort-mode-active #comfort-mode-custom-controls * {
       pointer-events: auto !important;
     }
-    body.comfort-mode-active .comfort-mode-video-container,
-    body.comfort-mode-active .comfort-mode-video-container * {
+    /* YouTube用 */
+    body.comfort-mode-active #movie_player,
+    body.comfort-mode-active #movie_player * {
       pointer-events: auto !important;
     }
-    /* コントロール無効時は動画コンテナ内も無効化 */
-    body.comfort-mode-active:not(.video-controls-enabled) .comfort-mode-video-container,
-    body.comfort-mode-active:not(.video-controls-enabled) .comfort-mode-video-container * {
+    /* コントロール無効時はYouTubeプレイヤー内も無効化 */
+    body.comfort-mode-active:not(.video-controls-enabled) #movie_player,
+    body.comfort-mode-active:not(.video-controls-enabled) #movie_player * {
       pointer-events: none !important;
     }
     /* 動画要素自体は常にpointer-eventsを有効に */
-    body.comfort-mode-active video {
+    body.comfort-mode-active video.comfort-mode-video {
       pointer-events: auto !important;
     }
   `;
@@ -564,6 +674,7 @@ function disableMouseEvents(): void {
 
 // z-index制御を適用する関数
 function applyZIndexControl(): void {
+  console.log('[Comfortable Video] Applying z-index control');
   // 黒いオーバーレイを作成（画面全体を覆う）
   const overlay = document.createElement('div');
   overlay.id = 'comfort-mode-overlay';
@@ -608,39 +719,14 @@ function removeZIndexControl(): void {
     zIndexStyle = null;
   }
 
-  // 親要素のz-indexを復元
-  const containers = document.querySelectorAll('.comfort-mode-video-container');
-  containers.forEach(container => {
-    const htmlEl = container as HTMLElement;
-    htmlEl.style.removeProperty('z-index');
-    htmlEl.classList.remove('comfort-mode-video-container');
-  });
-
-  // YouTube親要素のz-indexを復元
-  originalParentZIndex.forEach((originalInlineZIndex, element) => {
-    if (originalInlineZIndex === null) {
-      // 元々inline styleがなかった場合は削除
-      element.style.removeProperty('z-index');
-    } else {
-      // 元々inline styleがあった場合は復元
-      element.style.setProperty('z-index', originalInlineZIndex);
-    }
-  });
-  originalParentZIndex.clear();
-
   // body要素からクラスを削除
   document.body.classList.remove('comfort-mode-active');
   document.body.classList.remove('video-area-hovered');
 
-  // 動画とコンテナからクラスを削除
+  // 動画からクラスを削除
   const videos = document.querySelectorAll('video.comfort-mode-video') as NodeListOf<HTMLVideoElement>;
   videos.forEach(video => {
     video.classList.remove('comfort-mode-video');
-    // コンテナのクラスも削除
-    const parent = video.parentElement;
-    if (parent) {
-      parent.classList.remove('comfort-mode-video-container');
-    }
   });
 }
 
@@ -969,7 +1055,25 @@ function checkVideoEnded(): void {
 
   // すべての動画が終了した場合、快適モードを解除
   if (allEnded) {
-    disableComfortMode();
+    console.log('[Comfortable Video] 動画が終了したため、快適モードを自動解除します');
+    // 少し遅延させて、YouTube側のスタイル変更前に解除
+    setTimeout(() => {
+      disableComfortMode();
+    }, 50);
+  }
+}
+
+// 動画の残り時間をチェックして終了間近を検出
+function checkVideoNearEnd(): void {
+  if (!isComfortModeActive || !currentActiveVideo) return;
+
+  const video = currentActiveVideo;
+  const remainingTime = video.duration - video.currentTime;
+
+  // 残り0.5秒以下で終了間近と判断（次回のtimeupdateで終了判定）
+  if (isFinite(remainingTime) && remainingTime <= 0.5 && remainingTime > 0) {
+    // 終了間近のフラグを設定（必要に応じて使用）
+    (video as any).__nearEnd = true;
   }
 }
 
@@ -1075,20 +1179,6 @@ function showCustomControls(): void {
   // コントロールコンテナを作成
   customControls = document.createElement('div');
   customControls.id = 'comfort-mode-custom-controls';
-  customControls.style.cssText = `
-    position: fixed !important;
-    bottom: 60px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    background: rgba(0, 0, 0, 0.8) !important;
-    padding: 15px 20px !important;
-    border-radius: 8px !important;
-    z-index: 2147483647 !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 15px !important;
-    transition: opacity 0.3s ease !important;
-  `;
 
   // 30秒戻しボタン
   const rewind30Btn = document.createElement('button');
@@ -1098,25 +1188,6 @@ function showCustomControls(): void {
       <text x="12" y="16" font-size="8" fill="currentColor" text-anchor="middle">30</text>
     </svg>
   `;
-  rewind30Btn.style.cssText = `
-    background: transparent !important;
-    border: none !important;
-    color: white !important;
-    font-size: 14px !important;
-    cursor: pointer !important;
-    padding: 8px !important;
-    border-radius: 4px !important;
-    transition: background 0.2s !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  `;
-  rewind30Btn.addEventListener('mouseenter', () => {
-    rewind30Btn.style.background = 'rgba(255, 255, 255, 0.2)';
-  });
-  rewind30Btn.addEventListener('mouseleave', () => {
-    rewind30Btn.style.background = 'transparent';
-  });
   rewind30Btn.addEventListener('click', (e) => {
     e.stopPropagation();
     video.currentTime = Math.max(0, video.currentTime - 30);
@@ -1130,25 +1201,6 @@ function showCustomControls(): void {
       <text x="12" y="16" font-size="8" fill="currentColor" text-anchor="middle">10</text>
     </svg>
   `;
-  rewind10Btn.style.cssText = `
-    background: transparent !important;
-    border: none !important;
-    color: white !important;
-    font-size: 14px !important;
-    cursor: pointer !important;
-    padding: 8px !important;
-    border-radius: 4px !important;
-    transition: background 0.2s !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  `;
-  rewind10Btn.addEventListener('mouseenter', () => {
-    rewind10Btn.style.background = 'rgba(255, 255, 255, 0.2)';
-  });
-  rewind10Btn.addEventListener('mouseleave', () => {
-    rewind10Btn.style.background = 'transparent';
-  });
   rewind10Btn.addEventListener('click', (e) => {
     e.stopPropagation();
     video.currentTime = Math.max(0, video.currentTime - 10);
@@ -1166,25 +1218,6 @@ function showCustomControls(): void {
       <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
     </svg>
   `;
-  playPauseBtn.style.cssText = `
-    background: transparent !important;
-    border: none !important;
-    color: white !important;
-    font-size: 24px !important;
-    cursor: pointer !important;
-    padding: 8px !important;
-    border-radius: 4px !important;
-    transition: background 0.2s !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  `;
-  playPauseBtn.addEventListener('mouseenter', () => {
-    playPauseBtn.style.background = 'rgba(255, 255, 255, 0.2)';
-  });
-  playPauseBtn.addEventListener('mouseleave', () => {
-    playPauseBtn.style.background = 'transparent';
-  });
   playPauseBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (video.paused) {
@@ -1203,25 +1236,6 @@ function showCustomControls(): void {
       <text x="12" y="16" font-size="8" fill="currentColor" text-anchor="middle">10</text>
     </svg>
   `;
-  forward10Btn.style.cssText = `
-    background: transparent !important;
-    border: none !important;
-    color: white !important;
-    font-size: 14px !important;
-    cursor: pointer !important;
-    padding: 8px !important;
-    border-radius: 4px !important;
-    transition: background 0.2s !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  `;
-  forward10Btn.addEventListener('mouseenter', () => {
-    forward10Btn.style.background = 'rgba(255, 255, 255, 0.2)';
-  });
-  forward10Btn.addEventListener('mouseleave', () => {
-    forward10Btn.style.background = 'transparent';
-  });
   forward10Btn.addEventListener('click', (e) => {
     e.stopPropagation();
     video.currentTime = Math.min(video.duration, video.currentTime + 10);
@@ -1235,25 +1249,6 @@ function showCustomControls(): void {
       <text x="12" y="16" font-size="8" fill="currentColor" text-anchor="middle">30</text>
     </svg>
   `;
-  forward30Btn.style.cssText = `
-    background: transparent !important;
-    border: none !important;
-    color: white !important;
-    font-size: 14px !important;
-    cursor: pointer !important;
-    padding: 8px !important;
-    border-radius: 4px !important;
-    transition: background 0.2s !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  `;
-  forward30Btn.addEventListener('mouseenter', () => {
-    forward30Btn.style.background = 'rgba(255, 255, 255, 0.2)';
-  });
-  forward30Btn.addEventListener('mouseleave', () => {
-    forward30Btn.style.background = 'transparent';
-  });
   forward30Btn.addEventListener('click', (e) => {
     e.stopPropagation();
     video.currentTime = Math.min(video.duration, video.currentTime + 30);
@@ -1263,12 +1258,6 @@ function showCustomControls(): void {
   const currentTimeDisplay = document.createElement('span');
   currentTimeDisplay.id = 'comfort-current-time';
   currentTimeDisplay.textContent = formatTime(video.currentTime);
-  currentTimeDisplay.style.cssText = `
-    color: white !important;
-    font-size: 14px !important;
-    min-width: 45px !important;
-    text-align: right !important;
-  `;
 
   // シークバー
   const seekBar = document.createElement('input');
@@ -1277,38 +1266,6 @@ function showCustomControls(): void {
   // durationが取得できない場合は大きな値を設定（durationchangeイベントで更新される）
   seekBar.max = String(video.duration && isFinite(video.duration) ? video.duration : 10000);
   seekBar.value = String(video.currentTime);
-  seekBar.style.cssText = `
-    width: 300px !important;
-    cursor: pointer !important;
-    -webkit-appearance: none !important;
-    appearance: none !important;
-    height: 6px !important;
-    border-radius: 3px !important;
-    background: rgba(255, 255, 255, 0.3) !important;
-    outline: none !important;
-  `;
-  // シークバーのスタイル（thumb）
-  const style = document.createElement('style');
-  style.textContent = `
-    #comfort-mode-custom-controls input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none !important;
-      appearance: none !important;
-      width: 14px !important;
-      height: 14px !important;
-      border-radius: 50% !important;
-      background: white !important;
-      cursor: pointer !important;
-    }
-    #comfort-mode-custom-controls input[type="range"]::-moz-range-thumb {
-      width: 14px !important;
-      height: 14px !important;
-      border-radius: 50% !important;
-      background: white !important;
-      cursor: pointer !important;
-      border: none !important;
-    }
-  `;
-  document.head.appendChild(style);
 
   seekBar.addEventListener('input', (e) => {
     const target = e.target as HTMLInputElement;
@@ -1323,11 +1280,6 @@ function showCustomControls(): void {
   const durationDisplay = document.createElement('span');
   durationDisplay.id = 'comfort-duration';
   durationDisplay.textContent = formatTime(isFinite(video.duration) ? video.duration : 0);
-  durationDisplay.style.cssText = `
-    color: white !important;
-    font-size: 14px !important;
-    min-width: 45px !important;
-  `;
 
   // 要素を追加
   customControls.appendChild(rewind30Btn);
@@ -1407,6 +1359,9 @@ function showCustomControls(): void {
   video.addEventListener('timeupdate', () => {
     if (seekBar) seekBar.value = String(video.currentTime);
     if (currentTimeDisplay) currentTimeDisplay.textContent = formatTime(video.currentTime);
+
+    // 動画終了間近をチェック
+    checkVideoNearEnd();
   });
 
   // 動画の長さ変更イベントをリスンして、シークバーの最大値と総時間表示を更新
@@ -1513,6 +1468,22 @@ function disableComfortMode(): void {
     style.remove();
   }
 
+  // 動画要素を元の位置に戻す
+  if (originalVideoParent && currentActiveVideo) {
+    console.log('[Comfortable Video] Restoring video to original position');
+    const video = currentActiveVideo;
+
+    // 元の位置に挿入
+    if (originalVideoParent.nextSibling) {
+      originalVideoParent.parent.insertBefore(video, originalVideoParent.nextSibling);
+    } else {
+      originalVideoParent.parent.appendChild(video);
+    }
+
+    console.log('[Comfortable Video] Video restored to parent:', originalVideoParent.parent.tagName);
+    originalVideoParent = null;
+  }
+
   // 動画の元のスタイルを復元（CSSスタイルシート削除後に実行）
   originalVideoStyles.forEach((originalStyle, video) => {
     // !important付きのプロパティを個別に削除（setPropertyで設定されたものを削除）
@@ -1534,15 +1505,6 @@ function disableComfortMode(): void {
 
     // comfort-mode関連のクラスを削除
     video.classList.remove('comfort-mode-video');
-    video.classList.remove('comfort-mode-video-container');
-  });
-
-  // .comfort-mode-video-containerクラスを持つすべての要素のz-indexを復元
-  const videoContainers = document.querySelectorAll('.comfort-mode-video-container');
-  videoContainers.forEach(container => {
-    const elem = container as HTMLElement;
-    elem.style.removeProperty('z-index');
-    elem.classList.remove('comfort-mode-video-container');
   });
 
   originalVideoStyles.clear();
@@ -1562,21 +1524,32 @@ function disableComfortMode(): void {
 
 // バックグラウンドスクリプトからのメッセージを受信
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('[Comfortable Video] Message received:', message);
+
   if (message.action === 'toggleComfortMode') {
+    console.log('[Comfortable Video] Toggle comfort mode requested', {
+      isVideoContext: message.isVideoContext,
+      currentlyActive: isComfortModeActive
+    });
+
     // video要素から直接起動された場合の特別な処理
     if (message.isVideoContext) {
       // 既に快適モードがアクティブな場合は解除
       if (isComfortModeActive) {
+        console.log('[Comfortable Video] Disabling comfort mode (video context)');
         disableComfortMode();
       } else {
+        console.log('[Comfortable Video] Enabling comfort mode (video context)');
         // video要素の特定と優先処理は現在の実装で十分対応済み
         enableComfortMode();
       }
     } else {
       // 通常の切り替え処理
       if (isComfortModeActive) {
+        console.log('[Comfortable Video] Disabling comfort mode');
         disableComfortMode();
       } else {
+        console.log('[Comfortable Video] Enabling comfort mode');
         enableComfortMode();
       }
     }
@@ -1611,7 +1584,15 @@ window.addEventListener('resize', () => {
 });
 
 // 初期化処理
+console.log('[Comfortable Video] Content script loaded', {
+  url: window.location.href,
+  readyState: document.readyState,
+  isYouTube: isYouTube(),
+  isPrimeVideo: isPrimeVideo()
+});
+
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('[Comfortable Video] DOMContentLoaded');
   if (isYouTube()) {
     setupYouTubeObserver();
   } else if (isPrimeVideo()) {
@@ -1621,6 +1602,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ページが既に読み込み済みの場合の初期化
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  console.log('[Comfortable Video] Document already loaded, initializing');
   if (isYouTube()) {
     setupYouTubeObserver();
   } else if (isPrimeVideo()) {
@@ -1659,13 +1641,66 @@ function startVideoWatcher(): void {
           }
         });
       }
+
+      // スタイル属性の変更を監視（YouTube側の強制的なスタイル書き換えを検出）
+      if (mutation.type === 'attributes' && (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+        const target = mutation.target as HTMLElement;
+
+        // YouTube側が#movie_playerやvideo要素のスタイルを変更した場合
+        if (isYouTube()) {
+          // #movie_playerのスタイル変更をチェック
+          if (target.id === 'movie_player' || target === currentActiveVideo) {
+            const computedStyle = window.getComputedStyle(target);
+
+            // z-indexが我々が設定した値から大幅に変更された場合
+            const currentZIndex = parseInt(computedStyle.zIndex) || 0;
+            const expectedZIndex = 2147483647;
+
+            // z-indexが期待値から大きく外れた場合（YouTubeの書き換えと判断）
+            if (currentZIndex < expectedZIndex - 1000) {
+              console.log('[Comfortable Video] YouTube側でスタイルが書き換えられたため、快適モードを自動解除します');
+              disableComfortMode();
+              return;
+            }
+
+            // positionが我々が設定した値から変更された場合
+            if (target.id === 'movie_player') {
+              const expectedPosition = 'fixed';
+              if (computedStyle.position !== expectedPosition && computedStyle.position !== 'static') {
+                // positionがfixed以外に変更された場合（staticは初期値なので除外）
+                const inlineStyle = target.style.position;
+                if (inlineStyle && inlineStyle !== expectedPosition && inlineStyle !== '') {
+                  console.log('[Comfortable Video] YouTube側でpositionが書き換えられたため、快適モードを自動解除します');
+                  disableComfortMode();
+                  return;
+                }
+              }
+            }
+          }
+
+          // .comfort-mode-video-containerクラスを持つ要素のスタイル変更もチェック
+          if (target.classList.contains('comfort-mode-video-container')) {
+            const computedStyle = window.getComputedStyle(target);
+            const currentZIndex = parseInt(computedStyle.zIndex) || 0;
+
+            // z-indexが大幅に変更された場合
+            if (currentZIndex < 2147483640) {
+              console.log('[Comfortable Video] YouTube側でコンテナのz-indexが書き換えられたため、快適モードを自動解除します');
+              disableComfortMode();
+              return;
+            }
+          }
+        }
+      }
     });
   });
 
-  // DOM全体を監視（subtree: true で子孫要素も監視）
+  // DOM全体を監視（subtree: true で子孫要素も監視、attributes: true でスタイル属性変更も監視）
   videoWatcher.observe(document.body, {
     childList: true,
-    subtree: true
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['style', 'class']
   });
 
   // 動画終了イベントのリスナーを追加

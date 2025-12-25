@@ -6,7 +6,7 @@ Comfortable Video Chrome拡張機能の開発からデプロイまでの手順�
 
 ## 前提条件
 
-- Node.js (v16以上推奨)
+- Bun (v1.0以上推奨)
 - TypeScript
 - Chrome拡張機能の開発に関する基本的な知識
 
@@ -37,7 +37,7 @@ comfortable-movie/
 ### 1. 依存関係のインストール
 
 ```bash
-npm install
+bun install
 ```
 
 ### 2. TypeScript設定
@@ -50,23 +50,26 @@ npm install
 
 ## ビルドプロセス
 
-### 利用可能なnpmスクリプト
+### 利用可能なbunスクリプト
 
 ```bash
 # TypeScriptコンパイル + アセットコピー
-npm run build
+bun run build
 
 # アセットファイルのコピー
-npm run copy-assets
+bun run copy-assets
 
 # TypeScriptの監視モード
-npm run watch
+bun run watch
 
 # distディレクトリのクリーンアップ
-npm run clean
+bun run clean
 
 # クリーンアップ + ビルド
-npm run rebuild
+bun run rebuild
+
+# ビルド + デプロイ
+bun run deploy
 ```
 
 ### 手動ビルド手順
@@ -78,7 +81,7 @@ npm run rebuild
 
 2. **アセットファイルのコピー**
    ```bash
-   npm run copy-assets
+   bun run copy-assets
    ```
 
 3. **多言語ファイルのコピー**
@@ -106,7 +109,7 @@ npm run rebuild
 
 1. **ビルド実行**
    ```bash
-   npm run build
+   bun run build
    cp -r _locales dist/
    ```
 
@@ -172,8 +175,8 @@ npm run rebuild
 ### よくある問題
 
 1. **ビルドエラー**
-   - `npm run clean` でdistディレクトリをクリーンアップ
-   - `npm install` で依存関係を再インストール
+   - `bun run clean` でdistディレクトリをクリーンアップ
+   - `bun install` で依存関係を再インストール
 
 2. **権限エラー**
    - `manifest.json` の permissions セクションを確認
