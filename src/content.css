@@ -5,77 +5,107 @@
   overflow: hidden !important;
 }
 
+/* 黒いオーバーレイ */
+#comfort-mode-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: black !important;
+  z-index: 1000000 !important;
+  pointer-events: none !important;
+}
+
+/* 動画コンテナのz-index */
+body.comfort-mode-active .comfort-mode-video-container,
+body.comfort-mode-active .comfort-mode-video-container * {
+  z-index: 2147483647 !important;
+}
+
+/* pointer-events制御 */
+body.comfort-mode-active:not(.video-controls-enabled) *:not(.comfort-mode-video-container):not(.comfort-mode-video-container *) {
+  pointer-events: none !important;
+}
+
+body.comfort-mode-active.video-controls-enabled .comfort-mode-video-container * {
+  pointer-events: auto !important;
+}
+
+body.comfort-mode-active:not(.video-controls-enabled) .comfort-mode-video-container *:not(video) {
+  pointer-events: none !important;
+}
+
+body.comfort-mode-active video {
+  pointer-events: auto !important;
+}
+
+/* コントロールエリアの表示制御 */
+body.comfort-mode-active.video-controls-enabled .ytp-chrome-bottom {
+  display: block !important;
+  opacity: 1 !important;
+  z-index: 2147483647 !important;
+  visibility: visible !important;
+}
+
+body.comfort-mode-active.video-controls-enabled .html5-video-player.ytp-autohide .ytp-chrome-bottom {
+  display: block !important;
+  opacity: 1 !important;
+}
+
+body.comfort-mode-active.video-controls-enabled .atvwebplayersdk-bottom-container,
+body.comfort-mode-active.video-controls-enabled .atvwebplayersdk-overlays-container {
+  display: block !important;
+  opacity: 1 !important;
+  z-index: 2147483647 !important;
+  visibility: visible !important;
+}
+
 /* 解除ボタンのスタイル */
 #comfort-mode-exit-button {
   position: fixed !important;
   bottom: 15px !important;
   right: 15px !important;
-  background: transparent !important; /* デフォルトは背景なし */
-  color: rgba(255, 255, 255, 0.2) !important; /* デフォルトはより薄く */
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.2) !important;
   width: 28px !important;
   height: 28px !important;
   border-radius: 50% !important;
   cursor: pointer !important;
-  z-index: 2147483648 !important; /* 最大値+1で解除ボタンを最前面に */
+  z-index: 2147483648 !important;
   font-family: Arial, sans-serif !important;
   font-size: 18px !important;
   font-weight: bold !important;
   user-select: none !important;
   pointer-events: auto !important;
-  border: 1px solid transparent !important; /* デフォルトは境界線なし */
+  border: 1px solid transparent !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   transition: all 0.2s ease !important;
 }
 
-/* 動画エリア内でのボタン透明度 */
 body.comfort-mode-active.video-area-hovered #comfort-mode-exit-button {
   background: rgba(255, 255, 255, 0.1) !important;
   color: rgba(255, 255, 255, 0.4) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* コントロール有効時のボタン透明度（最も濃く） */
 body.comfort-mode-active.video-controls-enabled #comfort-mode-exit-button {
   background: rgba(255, 255, 255, 0.15) !important;
   color: rgba(255, 255, 255, 0.6) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
-/* ホバー効果はJavaScriptで制御するため、CSS側は無効化 */
 #comfort-mode-exit-button:active {
   background: rgba(255, 255, 255, 0.3) !important;
   transform: scale(0.95) !important;
 }
 
-/* 快適モード時のマウスイベント無効化 */
-.comfort-mode-no-interaction * {
-  pointer-events: none !important;
-}
-
-.comfort-mode-no-interaction #comfort-mode-exit-button {
-  pointer-events: auto !important;
-}
-
 /* 動画の最大化スタイル */
 .comfort-mode-video {
-  z-index: 2147483647 !important; /* 32bit整数の最大値で動画を最前面に */
+  z-index: 2147483647 !important;
   background: black !important;
-}
-
-/* 快適モード時のz-index制御 */
-body.comfort-mode-active *:not(.comfort-mode-video):not(#comfort-mode-exit-button) {
-  z-index: 999998 !important; /* 他の要素のz-indexを制限 */
-}
-
-/* 動画コントロールが有効な場合のスタイル */
-body.comfort-mode-active.video-controls-enabled video {
-  pointer-events: auto !important;
-}
-
-body.comfort-mode-active.video-controls-enabled video * {
-  pointer-events: auto !important;
 }
 
 /* スクロールバーを隠す */

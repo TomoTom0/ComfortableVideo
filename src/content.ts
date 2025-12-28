@@ -27,9 +27,6 @@ let primeControlButton: HTMLElement | null = null;
 // YouTube親要素の元のz-indexを保存するMap（nullは元々inline styleがなかったことを示す）
 let originalParentZIndex: Map<HTMLElement, string | null> = new Map();
 
-// z-index制御用のスタイル要素
-let zIndexStyle: HTMLStyleElement | null = null;
-
 // カーソル検出用の変数
 let cursorTimer: ReturnType<typeof setTimeout> | null = null;
 let controlsDisableTimer: ReturnType<typeof setTimeout> | null = null;
@@ -367,9 +364,6 @@ function enableComfortMode(): void {
   // z-index制御を適用
   applyZIndexControl();
 
-  // マウスイベントを無効化（改良版）
-  disableMouseEvents();
-
   // カーソル検出を開始
   startCursorDetection();
 
@@ -499,68 +493,16 @@ function maximizeVideo(video: HTMLVideoElement): void {
   }
 }
 
-// マウスイベントを無効化する関数（改良版）
-function disableMouseEvents(): void {
-  const style = document.createElement('style');
-  style.id = 'comfort-mode-style';
-  style.textContent = `
-    /* 動画コンテナとその子要素を最前面に */
-    body.comfort-mode-active .comfort-mode-video-container,
-    body.comfort-mode-active .comfort-mode-video-container * {
-      z-index: 2147483647 !important;
-    }
-    /* コントロール無効時のみpointer-eventsを無効化 */
-    body.comfort-mode-active:not(.video-controls-enabled) *:not(.comfort-mode-video-container):not(.comfort-mode-video-container *) {
-      pointer-events: none !important;
-    }
-    body.comfort-mode-active #comfort-mode-exit-button {
-      pointer-events: auto !important;
-    }
-    body.comfort-mode-active .comfort-mode-video-container,
-    body.comfort-mode-active .comfort-mode-video-container * {
-      pointer-events: auto !important;
-    }
-    /* コントロール無効時は動画コンテナ内も無効化 */
-    body.comfort-mode-active:not(.video-controls-enabled) .comfort-mode-video-container,
-    body.comfort-mode-active:not(.video-controls-enabled) .comfort-mode-video-container * {
-      pointer-events: none !important;
-    }
-    /* 動画要素自体は常にpointer-eventsを有効に */
-    body.comfort-mode-active video {
-      pointer-events: auto !important;
-    }
-  `;
-  document.head.appendChild(style);
-}
+// マウスイベント制御は全てCSSで管理
+// 不要になった関数
 
 // z-index制御を適用する関数
 function applyZIndexControl(): void {
   // 黒いオーバーレイを作成（画面全体を覆う）
   const overlay = document.createElement('div');
   overlay.id = 'comfort-mode-overlay';
-  overlay.style.cssText = `
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    background: black !important;
-    z-index: 1000000 !important;
-    pointer-events: none !important;
-  `;
   // 最初の子として挿入（すべての要素より前に）
   document.body.insertBefore(overlay, document.body.firstChild);
-
-  // 解除ボタンのz-indexを設定
-  zIndexStyle = document.createElement('style');
-  zIndexStyle.id = 'comfort-mode-zindex-control';
-  zIndexStyle.textContent = `
-    /* 解除ボタンを最前面に */
-    #comfort-mode-exit-button {
-      z-index: 2147483648 !important;
-    }
-  `;
-  document.head.appendChild(zIndexStyle);
 
   // body要素にクラスを追加
   document.body.classList.add('comfort-mode-active');
@@ -574,17 +516,10 @@ function removeZIndexControl(): void {
     overlay.remove();
   }
 
-  if (zIndexStyle) {
-    zIndexStyle.remove();
-    zIndexStyle = null;
-  }
-
-  // 親要素のz-indexを復元
+  // 親要素のクラスを削除
   const containers = document.querySelectorAll('.comfort-mode-video-container');
   containers.forEach(container => {
-    const htmlEl = container as HTMLElement;
-    htmlEl.style.removeProperty('z-index');
-    htmlEl.classList.remove('comfort-mode-video-container');
+    container.classList.remove('comfort-mode-video-container');
   });
 
   // YouTube親要素のz-indexを復元
@@ -602,16 +537,12 @@ function removeZIndexControl(): void {
   // body要素からクラスを削除
   document.body.classList.remove('comfort-mode-active');
   document.body.classList.remove('video-area-hovered');
+  document.body.classList.remove('video-controls-enabled');
 
-  // 動画とコンテナからクラスを削除
+  // 動画からクラスを削除
   const videos = document.querySelectorAll('video.comfort-mode-video') as NodeListOf<HTMLVideoElement>;
   videos.forEach(video => {
     video.classList.remove('comfort-mode-video');
-    // コンテナのクラスも削除
-    const parent = video.parentElement;
-    if (parent) {
-      parent.classList.remove('comfort-mode-video-container');
-    }
   });
 }
 
@@ -640,11 +571,15 @@ function startVideoPlaybackMonitoring(): void {
       }
     });
 
-    // 動画が停止した場合は無効化タイマーをキャンセル
+    // 動画が停止した場合は無効化タイマーをキャンセルし、コントロールを有効化
     video.addEventListener('pause', () => {
       if (controlsDisableTimer) {
         clearTimeout(controlsDisableTimer);
         controlsDisableTimer = null;
+      }
+      // 停止時は即座にコントロールを有効化
+      if (!isVideoControlsEnabled) {
+        enableVideoControls();
       }
     });
   });
@@ -728,10 +663,9 @@ function handleMouseMove(event: MouseEvent): void {
 
   // 解除ボタンの透明度制御（状態が変わった時だけ）
   if (isInVideoArea !== lastIsInVideoArea) {
-    updateExitButtonOpacity(isInVideoArea);
     lastIsInVideoArea = isInVideoArea;
 
-    // CSSクラスによる制御も追加
+    // CSSクラスによる制御
     if (isInVideoArea) {
       document.body.classList.add('video-area-hovered');
     } else {
@@ -794,29 +728,50 @@ function handleClick(event: MouseEvent): void {
   const videos = document.querySelectorAll('video.comfort-mode-video') as NodeListOf<HTMLVideoElement>;
   if (videos.length === 0) return;
 
-  // 動画下部20%エリア内でのクリックをチェック
-  let isClickInVideoBottomArea = false;
+  // 動画下部20%から画面下部までのエリア内でのクリックをチェック
+  let isClickInBottomArea = false;
+  // 動画の中央部分（縦20%-80%）でのクリックをチェック
+  let isClickInCenterArea = false;
+  let clickedVideo: HTMLVideoElement | null = null;
 
   videos.forEach(video => {
     const rect = video.getBoundingClientRect();
 
-    // 動画全体の範囲内かチェック
-    const isInVideoArea = event.clientX >= rect.left && event.clientX <= rect.right &&
-                         event.clientY >= rect.top && event.clientY <= rect.bottom;
+    // 動画下部20%の位置を計算
+    const bottomAreaHeight = rect.height * 0.2;
+    const bottomAreaTop = rect.bottom - bottomAreaHeight;
 
-    if (isInVideoArea) {
-      // さらに下部20%の範囲内かチェック
-      const bottomAreaHeight = rect.height * 0.2;
-      const bottomAreaTop = rect.bottom - bottomAreaHeight;
+    // 動画の横幅範囲内かつ、動画下部20%から画面下部までの範囲をチェック
+    if (event.clientX >= rect.left && event.clientX <= rect.right &&
+        event.clientY >= bottomAreaTop && event.clientY <= window.innerHeight) {
+      isClickInBottomArea = true;
+    }
 
-      if (event.clientY >= bottomAreaTop) {
-        isClickInVideoBottomArea = true;
-      }
+    // 動画の中央部分（縦20%-80%）でのクリックをチェック
+    const topAreaHeight = rect.height * 0.2;
+    const centerTop = rect.top + topAreaHeight;
+    const centerBottom = rect.bottom - bottomAreaHeight;
+
+    if (event.clientX >= rect.left && event.clientX <= rect.right &&
+        event.clientY >= centerTop && event.clientY <= centerBottom) {
+      isClickInCenterArea = true;
+      clickedVideo = video;
     }
   });
 
-  // 動画下部20%をクリックした場合、即座にコントロール有効化
-  if (isClickInVideoBottomArea) {
+  // 動画中央部分をクリックした場合、動画を停止/再生
+  if (isClickInCenterArea && clickedVideo) {
+    const video = clickedVideo as HTMLVideoElement;
+    if (video.paused) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+    return; // 以降の処理はスキップ
+  }
+
+  // 動画下部20%から画面下部までをクリックした場合、即座にコントロール有効化
+  if (isClickInBottomArea) {
     // 既存のタイマーをクリア
     if (cursorTimer) {
       clearTimeout(cursorTimer);
@@ -835,21 +790,6 @@ function enableVideoControls(): void {
   if (!isVideoControlsEnabled) {
     isVideoControlsEnabled = true;
     document.body.classList.add('video-controls-enabled');
-
-    // 解除ボタンの透明度を更新（コントロール有効状態を反映）
-    const videos = document.querySelectorAll('video.comfort-mode-video') as NodeListOf<HTMLVideoElement>;
-    let isInVideoArea = false;
-    const lastMouseEvent = (window as any).lastMouseEvent;
-    if (lastMouseEvent && videos.length > 0) {
-      videos.forEach(video => {
-        const rect = video.getBoundingClientRect();
-        if (lastMouseEvent.clientX >= rect.left && lastMouseEvent.clientX <= rect.right &&
-            lastMouseEvent.clientY >= rect.top && lastMouseEvent.clientY <= rect.bottom) {
-          isInVideoArea = true;
-        }
-      });
-    }
-    updateExitButtonOpacity(isInVideoArea);
   }
 }
 
@@ -858,21 +798,6 @@ function disableVideoControls(): void {
   if (isVideoControlsEnabled) {
     isVideoControlsEnabled = false;
     document.body.classList.remove('video-controls-enabled');
-
-    // 解除ボタンの透明度を更新（コントロール無効状態を反映）
-    const videos = document.querySelectorAll('video.comfort-mode-video') as NodeListOf<HTMLVideoElement>;
-    let isInVideoArea = false;
-    const lastMouseEvent = (window as any).lastMouseEvent;
-    if (lastMouseEvent && videos.length > 0) {
-      videos.forEach(video => {
-        const rect = video.getBoundingClientRect();
-        if (lastMouseEvent.clientX >= rect.left && lastMouseEvent.clientX <= rect.right &&
-            lastMouseEvent.clientY >= rect.top && lastMouseEvent.clientY <= rect.bottom) {
-          isInVideoArea = true;
-        }
-      });
-    }
-    updateExitButtonOpacity(isInVideoArea);
   }
 }
 
@@ -900,93 +825,14 @@ function checkVideoEnded(): void {
   }
 }
 
-// 解除ボタンの透明度を更新
-function updateExitButtonOpacity(isInVideoArea: boolean): void {
-  if (!exitButton) return;
-
-
-  if (isVideoControlsEnabled) {
-    // コントロール有効時: 最も濃く（操作中を示す）
-    exitButton.style.background = 'rgba(255, 255, 255, 0.15) !important';
-    exitButton.style.color = 'rgba(255, 255, 255, 0.6) !important';
-    exitButton.style.borderColor = 'rgba(255, 255, 255, 0.15) !important';
-  } else if (isInVideoArea) {
-    // 動画内: 通常の透明度
-    exitButton.style.background = 'rgba(255, 255, 255, 0.1) !important';
-    exitButton.style.color = 'rgba(255, 255, 255, 0.4) !important';
-    exitButton.style.borderColor = 'rgba(255, 255, 255, 0.1) !important';
-  } else {
-    // 動画外: 背景完全に透明、文字のみ表示
-    exitButton.style.background = 'transparent !important';
-    exitButton.style.color = 'rgba(255, 255, 255, 0.2) !important';
-    exitButton.style.borderColor = 'transparent !important';
-  }
-}
-
 // 解除ボタンを表示する関数
 function showExitButton(): void {
   exitButton = document.createElement('div');
   exitButton.id = 'comfort-mode-exit-button';
-  exitButton.innerHTML = '×'; // シンプルな×記号
-  exitButton.title = chrome.i18n.getMessage('comfortModeExitTooltip'); // ツールチップで説明
-  exitButton.style.cssText = `
-    position: fixed !important;
-    bottom: 15px !important;
-    right: 15px !important;
-    background: transparent !important;
-    color: rgba(255, 255, 255, 0.2) !important;
-    width: 28px !important;
-    height: 28px !important;
-    border-radius: 50% !important;
-    cursor: pointer !important;
-    z-index: 2147483648 !important;
-    font-family: Arial, sans-serif !important;
-    font-size: 18px !important;
-    font-weight: bold !important;
-    user-select: none !important;
-    pointer-events: auto !important;
-    border: 1px solid transparent !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    transition: all 0.2s ease !important;
-  `;
+  exitButton.innerHTML = '×';
+  exitButton.title = chrome.i18n.getMessage('comfortModeExitTooltip');
 
   exitButton.addEventListener('click', disableComfortMode);
-
-  // ホバー効果（コントロール有効時のみ）
-  exitButton.addEventListener('mouseenter', () => {
-    if (exitButton && isVideoControlsEnabled) {
-      exitButton.style.background = 'rgba(255, 255, 255, 0.25) !important';
-      exitButton.style.color = 'rgba(255, 255, 255, 0.9) !important';
-      exitButton.style.borderColor = 'rgba(255, 255, 255, 0.4) !important';
-    }
-  });
-
-  exitButton.addEventListener('mouseleave', () => {
-    // ホバー解除時は現在の動画エリア状態に応じて透明度を設定（コントロール有効時のみ）
-    if (exitButton && isVideoControlsEnabled) {
-      const videos = document.querySelectorAll('video.comfort-mode-video') as NodeListOf<HTMLVideoElement>;
-      let isInVideoArea = false;
-
-      // 最後のマウス位置をチェック（簡易的な実装）
-      const lastMouseEvent = (window as any).lastMouseEvent;
-      if (lastMouseEvent && videos.length > 0) {
-        videos.forEach(video => {
-          const rect = video.getBoundingClientRect();
-          if (lastMouseEvent.clientX >= rect.left && lastMouseEvent.clientX <= rect.right &&
-              lastMouseEvent.clientY >= rect.top && lastMouseEvent.clientY <= rect.bottom) {
-            isInVideoArea = true;
-          }
-        });
-      }
-
-      // ホバー解除後は適切な透明度に戻す
-      setTimeout(() => {
-        updateExitButtonOpacity(isInVideoArea);
-      }, 10); // 少し遅延させてスタイルの競合を避ける
-    }
-  });
 
   document.body.appendChild(exitButton);
 }
@@ -1010,16 +856,10 @@ function disableComfortMode(): void {
   // カーソル検出を停止
   stopCursorDetection();
 
-  // z-index制御を解除
+  // z-index制御を解除（CSS削除）
   removeZIndexControl();
 
-  // マウスイベントを有効化（CSSスタイルシートを削除）
-  const style = document.getElementById('comfort-mode-style');
-  if (style) {
-    style.remove();
-  }
-
-  // 動画の元のスタイルを復元（CSSスタイルシート削除後に実行）
+  // 動画の元のスタイルを復元
   originalVideoStyles.forEach((originalStyle, video) => {
     // !important付きのプロパティを個別に削除（setPropertyで設定されたものを削除）
     video.style.removeProperty('position');
@@ -1043,11 +883,14 @@ function disableComfortMode(): void {
     video.classList.remove('comfort-mode-video-container');
   });
 
-  // .comfort-mode-video-containerクラスを持つすべての要素のz-indexを復元
+  // .comfort-mode-video-containerクラスを持つすべての要素を復元
   const videoContainers = document.querySelectorAll('.comfort-mode-video-container');
   videoContainers.forEach(container => {
     const elem = container as HTMLElement;
     elem.style.removeProperty('z-index');
+    elem.style.removeProperty('display');
+    elem.style.removeProperty('opacity');
+    elem.style.removeProperty('visibility');
     elem.classList.remove('comfort-mode-video-container');
   });
 
