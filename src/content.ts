@@ -734,7 +734,7 @@ function handleClick(event: MouseEvent): void {
   let isClickInCenterArea = false;
   let clickedVideo: HTMLVideoElement | null = null;
 
-  videos.forEach(video => {
+  for (const video of Array.from(videos)) {
     const rect = video.getBoundingClientRect();
 
     // 動画下部20%の位置を計算
@@ -757,11 +757,11 @@ function handleClick(event: MouseEvent): void {
       isClickInCenterArea = true;
       clickedVideo = video;
     }
-  });
+  }
 
   // 動画中央部分をクリックした場合、動画を停止/再生
-  if (isClickInCenterArea && clickedVideo) {
-    const video = clickedVideo as HTMLVideoElement;
+  if (isClickInCenterArea && clickedVideo !== null) {
+    const video = clickedVideo;
     if (video.paused) {
       video.play().catch(() => {});
     } else {
