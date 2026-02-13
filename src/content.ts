@@ -671,8 +671,7 @@ function handleMouseMove(event: MouseEvent): void {
       // 動画エリア内にマウスがある場合、3秒後に非表示にするタイマーを再設定
       controlsHideOnMouseLeaveTimer = setTimeout(() => {
         if (customControls && currentActiveVideo && !currentActiveVideo.paused) {
-          customControls.style.opacity = '0';
-          customControls.style.pointerEvents = 'none';
+          customControls.classList.add('hidden');
           isMonitoringMouseForControlsHide = false;
         }
         controlsHideOnMouseLeaveTimer = null;
@@ -681,8 +680,7 @@ function handleMouseMove(event: MouseEvent): void {
       // 動画エリア外にマウスがある場合、0.5秒後に非表示
       controlsHideOnMouseLeaveTimer = setTimeout(() => {
         if (customControls && currentActiveVideo && !currentActiveVideo.paused) {
-          customControls.style.opacity = '0';
-          customControls.style.pointerEvents = 'none';
+          customControls.classList.add('hidden');
           isMonitoringMouseForControlsHide = false;
         }
         controlsHideOnMouseLeaveTimer = null;
@@ -1039,8 +1037,7 @@ function showCustomControls(): void {
     }
     // 再生開始時：マウスが動画エリアから0.5秒離れるまでコントロールを表示
     if (customControls) {
-      customControls.style.opacity = '1';
-      customControls.style.pointerEvents = 'auto';
+      customControls.classList.remove('hidden');
 
       // 既存のタイマーをクリア
       if (controlsHideOnMouseLeaveTimer) {
@@ -1060,8 +1057,7 @@ function showCustomControls(): void {
       const hideDelay = isMouseInVideoArea ? 3000 : 500;
       controlsHideOnMouseLeaveTimer = setTimeout(() => {
         if (customControls && currentActiveVideo && !currentActiveVideo.paused) {
-          customControls.style.opacity = '0';
-          customControls.style.pointerEvents = 'none';
+          customControls.classList.add('hidden');
           isMonitoringMouseForControlsHide = false;
         }
         controlsHideOnMouseLeaveTimer = null;
@@ -1078,8 +1074,7 @@ function showCustomControls(): void {
     }
     // 一時停止時はコントロールを表示
     if (customControls) {
-      customControls.style.opacity = '1';
-      customControls.style.pointerEvents = 'auto';
+      customControls.classList.remove('hidden');
 
       // マウス位置監視を停止
       isMonitoringMouseForControlsHide = false;
@@ -1116,12 +1111,8 @@ function showCustomControls(): void {
   });
 
   // 初期表示：動画が再生中の場合は非表示、一時停止中の場合は表示
-  if (video.paused) {
-    customControls.style.opacity = '1';
-    customControls.style.pointerEvents = 'auto';
-  } else {
-    customControls.style.opacity = '0';
-    customControls.style.pointerEvents = 'none';
+  if (!video.paused) {
+    customControls.classList.add('hidden');
   }
 }
 
@@ -1140,15 +1131,13 @@ function resetControlsAutoHide(): void {
   }
 
   if (customControls) {
-    customControls.style.opacity = '1';
-    customControls.style.pointerEvents = 'auto';
+    customControls.classList.remove('hidden');
 
     // 動画が一時停止中は非表示にしない
     if (currentActiveVideo && !currentActiveVideo.paused) {
       controlsAutoHideTimer = setTimeout(() => {
         if (customControls) {
-          customControls.style.opacity = '0';
-          customControls.style.pointerEvents = 'none';
+          customControls.classList.add('hidden');
         }
       }, 3000);
     }

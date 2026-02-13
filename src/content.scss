@@ -246,7 +246,14 @@ body.comfort-mode-active.video-controls-enabled {
   align-items: center !important;
   gap: 15px !important;
   transition: opacity 0.3s ease !important;
+  opacity: 1 !important;
   pointer-events: auto !important;
+
+  /* 非表示状態 */
+  &.hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
 
   button {
     background: transparent !important;
