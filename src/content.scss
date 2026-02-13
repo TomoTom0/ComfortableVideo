@@ -1,0 +1,334 @@
+/* 快適動画モード用のSCSSスタイル */
+
+/* 変数定義 */
+/* z-index */
+$z-index-video: 2147483647; /* 32bit整数の最大値 */
+$z-index-exit-button: 2147483648;
+$z-index-custom-controls: 2147483647;
+$z-index-overlay: 999999;
+$z-index-limited: 999998;
+
+/* 色定義 */
+$dark-bg: rgba(0, 0, 0, 0.8);
+$white-transparent-10: rgba(255, 255, 255, 0.1);
+$white-transparent-15: rgba(255, 255, 255, 0.15);
+$white-transparent-20: rgba(255, 255, 255, 0.2);
+$white-transparent-25: rgba(255, 255, 255, 0.25);
+$white-transparent-30: rgba(255, 255, 255, 0.3);
+$white-transparent-40: rgba(255, 255, 255, 0.4);
+$white-transparent-60: rgba(255, 255, 255, 0.6);
+$white-transparent-90: rgba(255, 255, 255, 0.9);
+
+/* 快適モード時の基本スタイル */
+.comfort-mode-active {
+  overflow: hidden !important;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+
+  &::-webkit-scrollbar {
+    display: none !important;
+  }
+}
+
+/* YouTubeコントロールボタン */
+.ytp-button.comfort-mode-button {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  opacity: 0.8 !important;
+  transition: all 0.2s ease !important;
+  width: auto !important;
+  height: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  &.active {
+    background: $white-transparent-20 !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Prime Videoコントロールボタン */
+.comfort-mode-button.prime-control {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 8px !important;
+  margin: 0 8px !important;
+  opacity: 0.8 !important;
+  transition: all 0.2s ease !important;
+  width: auto !important;
+  height: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+
+  &.active {
+    background: $white-transparent-20 !important;
+    opacity: 1 !important;
+  }
+}
+
+/* トースト通知 */
+.comfort-toast {
+  position: fixed !important;
+  top: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  background: $dark-bg !important;
+  color: white !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  z-index: $z-index-exit-button !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 14px !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  transition: opacity 0.3s ease !important;
+
+  &.show {
+    opacity: 1 !important;
+  }
+}
+
+/* 黒いオーバーレイ */
+#comfort-mode-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: black !important;
+  z-index: $z-index-overlay !important;
+  pointer-events: none !important;
+}
+
+/* 解除ボタン */
+#comfort-mode-exit-button {
+  position: fixed !important;
+  bottom: 15px !important;
+  right: 15px !important;
+  background: transparent !important;
+  color: $white-transparent-20 !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  z-index: $z-index-exit-button !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+  user-select: none !important;
+  pointer-events: auto !important;
+  border: 1px solid transparent !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+
+  &:active {
+    background: $white-transparent-30 !important;
+    transform: scale(0.95) !important;
+  }
+}
+
+/* 解除ボタンの状態別スタイル */
+body.comfort-mode-active.video-area-hovered #comfort-mode-exit-button {
+  background: $white-transparent-10 !important;
+  color: $white-transparent-40 !important;
+  border-color: $white-transparent-10 !important;
+}
+
+body.comfort-mode-active.video-controls-enabled #comfort-mode-exit-button {
+  background: $white-transparent-15 !important;
+  color: $white-transparent-60 !important;
+  border-color: $white-transparent-15 !important;
+
+  &:hover {
+    background: $white-transparent-25 !important;
+    color: $white-transparent-90 !important;
+    border-color: $white-transparent-40 !important;
+  }
+}
+
+/* マウスイベント無効化 */
+body.comfort-mode-active:not(.video-controls-enabled) {
+  *:not(.comfort-mode-video):not(#comfort-mode-exit-button):not(#comfort-mode-custom-controls):not(#comfort-mode-custom-controls *):not(#movie_player):not(#movie_player *) {
+    pointer-events: none !important;
+  }
+}
+
+body.comfort-mode-active {
+  #comfort-mode-exit-button {
+    pointer-events: auto !important;
+  }
+
+  #comfort-mode-custom-controls,
+  #comfort-mode-custom-controls * {
+    pointer-events: auto !important;
+  }
+
+  /* YouTube用 */
+  #movie_player,
+  #movie_player * {
+    pointer-events: auto !important;
+  }
+
+  /* コントロール無効時はYouTubeプレイヤー内も無効化 */
+  &:not(.video-controls-enabled) {
+    #movie_player,
+    #movie_player * {
+      pointer-events: none !important;
+    }
+  }
+
+  /* 動画要素自体は常にpointer-eventsを有効に */
+  video.comfort-mode-video {
+    pointer-events: auto !important;
+  }
+}
+
+/* 動画の最大化スタイル */
+.comfort-mode-video {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  object-fit: contain !important;
+  z-index: $z-index-video !important;
+  background: black !important;
+  transform: none !important;
+}
+
+.comfort-mode-video-container {
+  /* YouTubeの#movie_playerなどに適用 */
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: $z-index-video !important;
+
+  /* コンテナ内の動画要素 */
+  video {
+    position: static !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    transform: none !important;
+    top: auto !important;
+    left: auto !important;
+  }
+}
+
+/* z-index制御 */
+body.comfort-mode-active {
+  *:not(.comfort-mode-video):not(.comfort-mode-video-container):not(#comfort-mode-exit-button):not(#comfort-mode-custom-controls):not(#comfort-mode-custom-controls *):not(#comfort-mode-overlay):not(#movie_player):not(#movie_player *) {
+    z-index: $z-index-limited !important;
+  }
+}
+
+/* 動画コントロールが有効な場合 */
+body.comfort-mode-active.video-controls-enabled {
+  video {
+    pointer-events: auto !important;
+
+    * {
+      pointer-events: auto !important;
+    }
+  }
+}
+
+/* カスタムコントロール */
+#comfort-mode-custom-controls {
+  position: fixed !important;
+  bottom: 60px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  background: $dark-bg !important;
+  padding: 15px 20px !important;
+  border-radius: 8px !important;
+  z-index: $z-index-custom-controls !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 15px !important;
+  transition: opacity 0.3s ease !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+
+  /* 非表示状態 */
+  &.hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  button {
+    background: transparent !important;
+    border: none !important;
+    color: white !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    padding: 8px !important;
+    border-radius: 4px !important;
+    transition: background 0.2s !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    &#comfort-play-pause-btn {
+      font-size: 24px !important;
+    }
+
+    &:hover {
+      background: $white-transparent-20 !important;
+    }
+  }
+
+  #comfort-current-time {
+    color: white !important;
+    font-size: 14px !important;
+    min-width: 45px !important;
+    text-align: right !important;
+  }
+
+  #comfort-duration {
+    color: white !important;
+    font-size: 14px !important;
+    min-width: 45px !important;
+  }
+
+  input[type="range"] {
+    width: 300px !important;
+    cursor: pointer !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    height: 6px !important;
+    border-radius: 3px !important;
+    background: $white-transparent-30 !important;
+    outline: none !important;
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none !important;
+      appearance: none !important;
+      width: 14px !important;
+      height: 14px !important;
+      border-radius: 50% !important;
+      background: white !important;
+      cursor: pointer !important;
+    }
+
+    &::-moz-range-thumb {
+      width: 14px !important;
+      height: 14px !important;
+      border-radius: 50% !important;
+      background: white !important;
+      cursor: pointer !important;
+      border: none !important;
+    }
+  }
+}
