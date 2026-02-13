@@ -888,9 +888,6 @@ function disableComfortMode(): void {
   videoContainers.forEach(container => {
     const elem = container as HTMLElement;
     elem.style.removeProperty('z-index');
-    elem.style.removeProperty('display');
-    elem.style.removeProperty('opacity');
-    elem.style.removeProperty('visibility');
     elem.classList.remove('comfort-mode-video-container');
   });
 

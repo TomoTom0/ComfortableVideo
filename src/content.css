@@ -97,6 +97,12 @@ body.comfort-mode-active.video-controls-enabled #comfort-mode-exit-button {
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
+body.comfort-mode-active.video-controls-enabled #comfort-mode-exit-button:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
 #comfort-mode-exit-button:active {
   background: rgba(255, 255, 255, 0.3) !important;
   transform: scale(0.95) !important;
