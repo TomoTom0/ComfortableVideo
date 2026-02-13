@@ -1,11 +1,23 @@
 /* 快適動画モード用のSCSSスタイル */
 
 /* 変数定義 */
+/* z-index */
 $z-index-video: 2147483647; /* 32bit整数の最大値 */
 $z-index-exit-button: 2147483648;
 $z-index-custom-controls: 2147483647;
 $z-index-overlay: 999999;
 $z-index-limited: 999998;
+
+/* 色定義 */
+$dark-bg: rgba(0, 0, 0, 0.8);
+$white-transparent-10: rgba(255, 255, 255, 0.1);
+$white-transparent-15: rgba(255, 255, 255, 0.15);
+$white-transparent-20: rgba(255, 255, 255, 0.2);
+$white-transparent-25: rgba(255, 255, 255, 0.25);
+$white-transparent-30: rgba(255, 255, 255, 0.3);
+$white-transparent-40: rgba(255, 255, 255, 0.4);
+$white-transparent-60: rgba(255, 255, 255, 0.6);
+$white-transparent-90: rgba(255, 255, 255, 0.9);
 
 /* 快適モード時の基本スタイル */
 .comfort-mode-active {
@@ -34,7 +46,7 @@ $z-index-limited: 999998;
   justify-content: center !important;
 
   &.active {
-    background: rgba(255, 255, 255, 0.2) !important;
+    background: $white-transparent-20 !important;
     opacity: 1 !important;
   }
 }
@@ -56,7 +68,7 @@ $z-index-limited: 999998;
   border-radius: 4px !important;
 
   &.active {
-    background: rgba(255, 255, 255, 0.2) !important;
+    background: $white-transparent-20 !important;
     opacity: 1 !important;
   }
 }
@@ -67,7 +79,7 @@ $z-index-limited: 999998;
   top: 20px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
-  background: rgba(0, 0, 0, 0.8) !important;
+  background: $dark-bg !important;
   color: white !important;
   padding: 12px 24px !important;
   border-radius: 8px !important;
@@ -101,7 +113,7 @@ $z-index-limited: 999998;
   bottom: 15px !important;
   right: 15px !important;
   background: transparent !important;
-  color: rgba(255, 255, 255, 0.2) !important;
+  color: $white-transparent-20 !important;
   width: 28px !important;
   height: 28px !important;
   border-radius: 50% !important;
@@ -119,27 +131,27 @@ $z-index-limited: 999998;
   transition: all 0.2s ease !important;
 
   &:active {
-    background: rgba(255, 255, 255, 0.3) !important;
+    background: $white-transparent-30 !important;
     transform: scale(0.95) !important;
   }
 }
 
 /* 解除ボタンの状態別スタイル */
 body.comfort-mode-active.video-area-hovered #comfort-mode-exit-button {
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: rgba(255, 255, 255, 0.4) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: $white-transparent-10 !important;
+  color: $white-transparent-40 !important;
+  border-color: $white-transparent-10 !important;
 }
 
 body.comfort-mode-active.video-controls-enabled #comfort-mode-exit-button {
-  background: rgba(255, 255, 255, 0.15) !important;
-  color: rgba(255, 255, 255, 0.6) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: $white-transparent-15 !important;
+  color: $white-transparent-60 !important;
+  border-color: $white-transparent-15 !important;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.25) !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-    border-color: rgba(255, 255, 255, 0.4) !important;
+    background: $white-transparent-25 !important;
+    color: $white-transparent-90 !important;
+    border-color: $white-transparent-40 !important;
   }
 }
 
@@ -238,7 +250,7 @@ body.comfort-mode-active.video-controls-enabled {
   bottom: 60px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
-  background: rgba(0, 0, 0, 0.8) !important;
+  background: $dark-bg !important;
   padding: 15px 20px !important;
   border-radius: 8px !important;
   z-index: $z-index-custom-controls !important;
@@ -273,7 +285,7 @@ body.comfort-mode-active.video-controls-enabled {
     }
 
     &:hover {
-      background: rgba(255, 255, 255, 0.2) !important;
+      background: $white-transparent-20 !important;
     }
   }
 
@@ -297,7 +309,7 @@ body.comfort-mode-active.video-controls-enabled {
     appearance: none !important;
     height: 6px !important;
     border-radius: 3px !important;
-    background: rgba(255, 255, 255, 0.3) !important;
+    background: $white-transparent-30 !important;
     outline: none !important;
 
     &::-webkit-slider-thumb {

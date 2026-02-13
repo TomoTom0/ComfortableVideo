@@ -1214,11 +1214,18 @@ function disableComfortMode(): void {
     originalVideoParent = null;
   }
 
-  // 動画の元のスタイルを復元（CSSクラスの削除のみ）
+  // 動画の元のスタイルを復元
   originalVideoStyles.forEach((originalStyle, video) => {
     // comfort-mode関連のクラスを削除（スタイルはCSSで管理）
     video.classList.remove('comfort-mode-video');
     video.classList.remove('comfort-mode-video-container');
+
+    // 元のinline styleを復元
+    if (originalStyle.inlineStyle) {
+      video.setAttribute('style', originalStyle.inlineStyle);
+    } else {
+      video.removeAttribute('style');
+    }
   });
 
   originalVideoStyles.clear();
