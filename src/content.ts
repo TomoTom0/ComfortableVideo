@@ -15,6 +15,9 @@ let originalVideoStyles: Map<HTMLVideoElement | HTMLElement, {
 // 動画要素監視用のMutationObserver
 let videoWatcher: MutationObserver | null = null;
 
+// Prime Video字幕監視用
+let primeCaptionsObserver: MutationObserver | null = null;
+
 // 解除ボタンの要素
 let exitButton: HTMLElement | null = null;
 
@@ -34,6 +37,12 @@ let primeControlButton: HTMLElement | null = null;
 
 // 動画要素の元の親要素と位置を記憶
 let originalVideoParent: {
+  parent: HTMLElement;
+  nextSibling: Node | null;
+} | null = null;
+
+// Prime Video字幕の元の位置を記録
+let originalCaptionsParent: {
   parent: HTMLElement;
   nextSibling: Node | null;
 } | null = null;
@@ -468,6 +477,9 @@ function enableComfortMode(): void {
 
   // Prime Videoボタンの状態を更新
   updatePrimeButtonState();
+
+  // Prime Video字幕監視を開始
+  startPrimeCaptionsObserver();
 }
 
 // 動画を画面いっぱいに最大化する関数
@@ -517,6 +529,17 @@ function maximizeVideo(video: HTMLVideoElement): void {
     // 動画要素をbodyに移動（親要素のスタッキングコンテキストから完全に独立）
     document.body.appendChild(video);
     console.log('[Comfortable Video] Video moved to body');
+
+    // Prime Video字幕オーバーレイも一緒にbodyに移動
+    const captionsOverlay = document.querySelector('.atvwebplayersdk-captions-overlay') as HTMLElement;
+    if (captionsOverlay && captionsOverlay.parentElement) {
+      originalCaptionsParent = {
+        parent: captionsOverlay.parentElement,
+        nextSibling: captionsOverlay.nextSibling
+      };
+      document.body.appendChild(captionsOverlay);
+      console.log('[Comfortable Video] Prime Video captions overlay moved to body');
+    }
 
     // スタイルはCSSクラスで管理（インラインスタイルは使用しない）
   }
@@ -1161,6 +1184,57 @@ function hideCustomControls(): void {
   isMonitoringMouseForControlsHide = false;
 }
 
+// Prime Video字幕監視を開始
+function startPrimeCaptionsObserver(): void {
+  if (!isPrimeVideo() || primeCaptionsObserver) {
+    return;
+  }
+
+  const moveCaptionsToBody = () => {
+    const overlay = document.querySelector('.atvwebplayersdk-captions-overlay') as HTMLElement;
+
+    // 字幕要素が存在し、かつまだbodyの子要素でない場合
+    if (overlay && overlay.parentElement && overlay.parentElement.tagName !== 'BODY') {
+      // 元の位置を記録（まだ記録されていない場合）
+      if (!originalCaptionsParent) {
+        originalCaptionsParent = {
+          parent: overlay.parentElement,
+          nextSibling: overlay.nextSibling
+        };
+        console.log('[Comfortable Video] Saved original captions parent:', {
+          parent: originalCaptionsParent.parent.tagName,
+          hasNextSibling: !!originalCaptionsParent.nextSibling
+        });
+      }
+
+      // bodyに移動
+      document.body.appendChild(overlay);
+      console.log('[Comfortable Video] Prime Video captions overlay moved to body (via observer)');
+    }
+  };
+
+  // 初回チェック
+  moveCaptionsToBody();
+
+  // MutationObserverで監視
+  primeCaptionsObserver = new MutationObserver(() => {
+    moveCaptionsToBody();
+  });
+
+  primeCaptionsObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}
+
+// Prime Video字幕監視を停止
+function stopPrimeCaptionsObserver(): void {
+  if (primeCaptionsObserver) {
+    primeCaptionsObserver.disconnect();
+    primeCaptionsObserver = null;
+  }
+}
+
 // 快適モードを解除する関数
 function disableComfortMode(): void {
   if (!isComfortModeActive) {
@@ -1168,7 +1242,6 @@ function disableComfortMode(): void {
   }
 
   isComfortModeActive = false;
-  currentActiveVideo = null; // アクティブ動画をクリア
 
   // 動画監視を停止
   stopVideoWatcher();
@@ -1196,23 +1269,36 @@ function disableComfortMode(): void {
     if (videoContainer) {
       videoContainer.classList.remove('comfort-mode-video-container');
     }
-  }
-
-  // 動画要素を元の位置に戻す
-  if (originalVideoParent && currentActiveVideo) {
-    console.log('[Comfortable Video] Restoring video to original position');
-    const video = currentActiveVideo;
-
-    // 元の位置に挿入
-    if (originalVideoParent.nextSibling) {
-      originalVideoParent.parent.insertBefore(video, originalVideoParent.nextSibling);
-    } else {
-      originalVideoParent.parent.appendChild(video);
+  } else {
+    // 他のサイトでは動画要素を元の位置に戻す
+    if (originalVideoParent && currentActiveVideo) {
+      console.log('[Comfortable Video] Restoring video to original position');
+      const video = currentActiveVideo;
+      if (originalVideoParent.nextSibling) {
+        originalVideoParent.parent.insertBefore(video, originalVideoParent.nextSibling);
+      } else {
+        originalVideoParent.parent.appendChild(video);
+      }
+      originalVideoParent = null;
     }
 
-    console.log('[Comfortable Video] Video restored to parent:', originalVideoParent.parent.tagName);
-    originalVideoParent = null;
+    // Prime Video字幕オーバーレイも元の位置に戻す
+    if (originalCaptionsParent) {
+      const captionsOverlay = document.querySelector('.atvwebplayersdk-captions-overlay') as HTMLElement;
+      if (captionsOverlay) {
+        console.log('[Comfortable Video] Restoring Prime Video captions overlay to original position');
+        if (originalCaptionsParent.nextSibling) {
+          originalCaptionsParent.parent.insertBefore(captionsOverlay, originalCaptionsParent.nextSibling);
+        } else {
+          originalCaptionsParent.parent.appendChild(captionsOverlay);
+        }
+      }
+      originalCaptionsParent = null;
+    }
   }
+
+  // アクティブ動画をクリア
+  currentActiveVideo = null;
 
   // 動画の元のスタイルを復元
   originalVideoStyles.forEach((originalStyle, video) => {
@@ -1235,6 +1321,9 @@ function disableComfortMode(): void {
     exitButton.remove();
     exitButton = null;
   }
+
+  // Prime Video字幕監視を停止
+  stopPrimeCaptionsObserver();
 
   // YouTubeボタンの状態を更新
   updateYouTubeButtonState();
