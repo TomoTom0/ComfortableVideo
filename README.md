@@ -110,6 +110,25 @@ YouTube、ニコニコ動画、Vimeo、その他HTML5動画プレーヤーを使
 
 詳細な変更履歴は [docs/changelog/](./docs/changelog/) をご覧ください。
 
+## Chrome Web Store公開準備
+
+このプロジェクトは、Chrome Web Storeへの公開準備が進行中です。詳細は `docs/chrome-store/README.md` をご覧ください。
+
+### 公開準備状況
+
+✅ **完了**
+- LICENSEファイル（MIT License）
+- プライバシーポリシー
+- 権限の根拠説明
+- サードパーティコード開示
+- ストア掲載情報
+- コンプライアンスチェックリスト
+
+📋 **残りのタスク**
+- プライバシーポリシーを公開URLにホスト
+- スクリーンショット作成（3-5枚推奨）
+- Chrome Web Store Developerアカウント登録
+
 ## ライセンス
 
 MIT License - 詳細は LICENSE ファイルをご覧ください。
