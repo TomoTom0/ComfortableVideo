@@ -1251,10 +1251,22 @@ function startPrimeCaptionsObserver(): void {
     moveCaptionsToBody();
   });
 
-  primeCaptionsObserver.observe(document.body, {
+  // Prime Videoのプレイヤーコンテナを特定（パフォーマンス最適化）
+  // 一般的なセレクタを順に試し、見つからない場合はdocument.bodyにフォールバック
+  const primePlayerContainer = document.querySelector('.webPlayerContainer') ||
+                               document.querySelector('[data-testid="video-player"]') ||
+                               document.querySelector('.dv-player-fullscreen') ||
+                               document.querySelector('#dv-web-player') ||
+                               document.body;
+
+  primeCaptionsObserver.observe(primePlayerContainer, {
     childList: true,
     subtree: true
   });
+
+  if (primePlayerContainer !== document.body) {
+    console.log('[Comfortable Video] Observing Prime Video player container:', primePlayerContainer.className || primePlayerContainer.id);
+  }
 }
 
 // Prime Video字幕監視を停止
