@@ -43,8 +43,30 @@ chrome.runtime.onInstalled.addListener(() => {
   createContextMenus();
 });
 
+// Content Scriptを動的に注入する関数
+async function injectContentScript(tabId: number): Promise<void> {
+  try {
+    // Content Scriptを注入
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ['content.js']
+    });
+
+    // CSSを注入
+    await chrome.scripting.insertCSS({
+      target: { tabId },
+      files: ['content.css']
+    });
+
+    console.log('Content Scriptを動的に注入しました');
+  } catch (error) {
+    console.error('Content Scriptの注入に失敗しました:', error);
+    throw error;
+  }
+}
+
 // コンテキストメニューがクリックされた時の処理
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if ((info.menuItemId === 'comfort-mode-toggle' || info.menuItemId === 'comfort-mode-video-toggle') && tab?.id) {
     // video要素専用メニューの場合は、クリックされた動画要素の情報も送信
     const message = {
@@ -57,9 +79,26 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     };
 
     // アクティブなタブのコンテンツスクリプトにメッセージを送信
-    chrome.tabs.sendMessage(tab.id, message, (response) => {
+    chrome.tabs.sendMessage(tab.id, message, async (response) => {
       if (chrome.runtime.lastError) {
-        console.error('コンテンツスクリプトとの通信に失敗しました:', chrome.runtime.lastError);
+        // Content Scriptが注入されていない場合、動的に注入
+        console.log('Content Scriptが注入されていないため、動的に注入します');
+        try {
+          await injectContentScript(tab.id!);
+
+          // 少し待ってから再度メッセージを送信
+          setTimeout(() => {
+            chrome.tabs.sendMessage(tab.id!, message, (retryResponse) => {
+              if (chrome.runtime.lastError) {
+                console.error('再送信に失敗しました:', chrome.runtime.lastError);
+              } else if (retryResponse?.success) {
+                console.log('快適モードが切り替えられました（動的注入後）');
+              }
+            });
+          }, 100);
+        } catch (error) {
+          console.error('Content Scriptの注入に失敗しました:', error);
+        }
       } else if (response?.success) {
         const context = info.menuItemId === 'comfort-mode-video-toggle' ? '(動画から)' : '';
         console.log(`快適モードが切り替えられました ${context}`);
@@ -69,12 +108,31 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 // 拡張機能のアイコンがクリックされた時の処理
-chrome.action.onClicked.addListener((tab) => {
+chrome.action.onClicked.addListener(async (tab) => {
   if (tab.id) {
+    const message = { action: 'toggleComfortMode' };
+
     // アクティブなタブのコンテンツスクリプトにメッセージを送信
-    chrome.tabs.sendMessage(tab.id, { action: 'toggleComfortMode' }, (response) => {
+    chrome.tabs.sendMessage(tab.id, message, async (response) => {
       if (chrome.runtime.lastError) {
-        console.error('コンテンツスクリプトとの通信に失敗しました:', chrome.runtime.lastError);
+        // Content Scriptが注入されていない場合、動的に注入
+        console.log('Content Scriptが注入されていないため、動的に注入します');
+        try {
+          await injectContentScript(tab.id!);
+
+          // 少し待ってから再度メッセージを送信
+          setTimeout(() => {
+            chrome.tabs.sendMessage(tab.id!, message, (retryResponse) => {
+              if (chrome.runtime.lastError) {
+                console.error('再送信に失敗しました:', chrome.runtime.lastError);
+              } else if (retryResponse?.success) {
+                console.log('快適モードが切り替えられました（動的注入後）');
+              }
+            });
+          }, 100);
+        } catch (error) {
+          console.error('Content Scriptの注入に失敗しました:', error);
+        }
       } else if (response?.success) {
         console.log('快適モードが切り替えられました');
       }

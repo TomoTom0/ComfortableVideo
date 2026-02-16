@@ -7,6 +7,7 @@
   "permissions": [
     "activeTab",
     "contextMenus",
+    "scripting",
     "storage"
   ],
   "background": {
@@ -14,7 +15,17 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "*://www.youtube.com/*",
+        "*://youtube.com/*",
+        "*://m.youtube.com/*",
+        "*://*.primevideo.com/*",
+        "*://www.amazon.co.jp/*/video/*",
+        "*://www.amazon.com/*/video/*",
+        "*://tver.jp/*",
+        "*://*.tver.jp/*",
+        "*://*.netflix.com/*"
+      ],
       "js": ["content.js"],
       "css": ["content.css"],
       "run_at": "document_end"
@@ -23,7 +34,18 @@
   "web_accessible_resources": [
     {
       "resources": ["content.css"],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "*://www.youtube.com/*",
+        "*://youtube.com/*",
+        "*://m.youtube.com/*",
+        "*://*.primevideo.com/*",
+        "*://www.amazon.co.jp/*",
+        "*://www.amazon.com/*",
+        "*://tver.jp/*",
+        "*://*.tver.jp/*",
+        "*://*.netflix.com/*",
+        "<all_urls>"
+      ]
     }
   ],
   "action": {
