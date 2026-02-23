@@ -48,6 +48,10 @@ Comfortable Video Chrome拡張機能の技術アーキテクチャと実装詳�
 - **拡張機能アイコン処理**
   - ツールバーアイコンクリックでの快適モード切り替え
 
+- **Content Script動的注入**
+  - 主要サイト以外でユーザーが起動した際、`scripting` APIでContent ScriptとCSSを動的注入
+  - 注入後にメッセージを再送信してコマンドを実行
+
 - **設定変更通知**
   - オプションページからの設定変更を受信
   - コンテキストメニューの再構築
@@ -276,6 +280,7 @@ const cleanup = () => {
   "permissions": [
     "activeTab",        // アクティブタブのみアクセス
     "contextMenus",     // コンテキストメニュー
+    "scripting",        // Content Scriptの動的注入
     "storage"          // 設定保存
   ]
 }

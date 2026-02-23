@@ -260,6 +260,9 @@ function localizeUI(): void {
 
   // ページタイトルも更新
   document.title = chrome.i18n.getMessage('optionsTitle') || 'Comfortable Video - Options';
+
+  // html要素のlang属性を更新
+  document.documentElement.lang = chrome.i18n.getUILanguage();
 }
 
 // 初期化

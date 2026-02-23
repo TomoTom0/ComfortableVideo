@@ -453,7 +453,7 @@ function enableComfortMode(): void {
 
   if (!currentActiveVideo) {
     console.error('[Comfortable Video] No valid video found (all videos have zero dimensions)');
-    showContentToast('動画の読み込みを待っています...');
+    showContentToast(chrome.i18n.getMessage('waitingForVideo'));
     isComfortModeActive = false;
     return;
   }

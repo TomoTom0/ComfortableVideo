@@ -121,6 +121,7 @@ src/
   "permissions": [
     "activeTab",
     "contextMenus",
+    "scripting",
     "storage"
   ],
   "background": {
@@ -128,7 +129,17 @@ src/
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "*://www.youtube.com/*",
+        "*://youtube.com/*",
+        "*://m.youtube.com/*",
+        "*://*.primevideo.com/*",
+        "*://www.amazon.co.jp/*/video/*",
+        "*://www.amazon.com/*/video/*",
+        "*://tver.jp/*",
+        "*://*.tver.jp/*",
+        "*://*.netflix.com/*"
+      ],
       "js": ["content.js"],
       "css": ["content.css"],
       "run_at": "document_end"
@@ -383,6 +394,7 @@ const attachEventSafely = (element: Element, event: string, handler: EventListen
   "permissions": [
     "activeTab",        // 全タブアクセスではなくアクティブタブのみ
     "contextMenus",     // 必要な機能のみ
+    "scripting",        // Content Scriptの動的注入（主要サイト以外）
     "storage"          // 設定保存に必要
   ]
 }

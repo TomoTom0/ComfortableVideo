@@ -136,10 +136,11 @@ function updateSliderValue(value: number): void {
   elements.sliderValue.textContent = `${value}${unit}`;
 }
 
-// 確認ダイアログ
-function confirmReset(): boolean {
-  const confirmMessage = chrome.i18n.getMessage('resetConfirm') || '設定をリセットしますか？';
-  return confirm(confirmMessage);
+// 確認ダイアログ（カスタムダイアログを使用。ブラウザネイティブのconfirm()は禁止）
+function confirmReset(): void {
+  const confirmMessage = chrome.i18n.getMessage('resetConfirm');
+  // showConfirmDialog内でラベルは解決されるため、ここではメッセージのみ渡す
+  showConfirmDialog(confirmMessage);
 }
 
 // エラーメッセージ
@@ -233,13 +234,20 @@ const message = chrome.i18n.getMessage('itemCount', [count.toString()]);
 - `settingsReset`: 設定リセット完了
 - `settingsLoadError`: 設定読み込みエラー
 - `settingsSaveError`: 設定保存エラー
-- `resetConfirm`: リセット確認
+- `resetConfirm`: リセット確認ダイアログのメッセージ
+- `noVideoFound`: 動画が見つからない場合のトースト
+- `waitingForVideo`: 動画読み込み待ちのトースト
+
+#### ダイアログボタン
+- `ok`: 確認ダイアログのOKボタン
+- `cancel`: 確認ダイアログのキャンセルボタン
 
 #### 単位・その他
 - `secondsUnit`: 秒の単位表示
 - `percentUnit`: パーセントの単位表示
 - `saveButton`: 保存ボタン
 - `resetButton`: リセットボタン
+- `version`: バージョン表示テキスト
 
 ## 翻訳ガイドライン
 

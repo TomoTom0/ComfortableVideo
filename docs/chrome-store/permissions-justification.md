@@ -8,7 +8,7 @@
 
 **Manifest宣言:**
 ```json
-"permissions": ["activeTab"]
+"permissions": ["activeTab", "contextMenus", "scripting", "storage"]
 ```
 
 **必要な理由:**
@@ -33,7 +33,28 @@
 
 ---
 
-### 2. contextMenus
+### 2. scripting
+
+**Manifest宣言:**
+```json
+"permissions": ["scripting"]
+```
+
+**必要な理由:**
+`scripting`権限は、主要サイト以外のページでContent Scriptを動的に注入するために必要です：
+
+1. **動的なContent Script注入** - ユーザーが右クリックメニューまたは拡張機能アイコンで起動した際、対象ページにContent ScriptとCSSを注入
+2. **ハイブリッド動作方式の実現** - 主要サイトでは事前宣言、その他のサイトではオンデマンドで注入
+
+**ユーザーコントロール:**
+ユーザーが明示的に拡張機能を起動した場合にのみ注入が実行されます。バックグラウンドでの自動実行はありません。
+
+**データ取り扱い:**
+データ収集なし。Content Scriptの注入に使用するのみです。
+
+---
+
+### 3. contextMenus
 
 **Manifest宣言:**
 ```json
@@ -58,7 +79,7 @@
 
 ---
 
-### 3. storage
+### 4. storage
 
 **Manifest宣言:**
 ```json
@@ -113,7 +134,17 @@
 **Manifest宣言:**
 ```json
 "content_scripts": [{
-  "matches": ["<all_urls>"],
+  "matches": [
+    "*://www.youtube.com/*",
+    "*://youtube.com/*",
+    "*://m.youtube.com/*",
+    "*://*.primevideo.com/*",
+    "*://www.amazon.co.jp/*/video/*",
+    "*://www.amazon.com/*/video/*",
+    "*://tver.jp/*",
+    "*://*.tver.jp/*",
+    "*://*.netflix.com/*"
+  ],
   "js": ["content.js"],
   "css": ["content.css"],
   "run_at": "document_end"
@@ -129,23 +160,16 @@ Content scriptsは、ウェブページに必要な機能を注入します：
 4. **マウス位置に基づくコントロール表示の管理**
 5. **キーボードショートカットの処理**（ESCで終了）
 
-**スコープ:**
-`<all_urls>`は広範囲に見えますが、content scriptは：
-- 有効化されるまでバックグラウンドで受動的に動作
-- ユーザーが明示的に快適モードを有効化した場合のみページを変更
-- ユーザーのサイト別設定を尊重（サイトごとに無効化可能）
+**スコープ（ハイブリッド方式）:**
+主要な動画サービス（YouTube、Amazon Prime Video、TVer、Netflix）では、ページ読み込み時に自動的にContent Scriptが注入されます。それ以外のサイトでは、ユーザーが右クリックメニューまたは拡張機能アイコンをクリックした際に`scripting` APIで動的に注入されます。
 
 **データ取り扱い:**
 - ページからのデータ抽出なし
 - 外部サーバーとの通信なし
 - 視覚的表示のためのDOM操作のみ
 
-**`<all_urls>`を使用する理由:**
-ユーザーは、あらゆる動画ホスティングウェブサイトで快適モードを使用したい可能性があります。特定のドメインに限定すると、以下のサイトで拡張機能が動作しなくなります：
-- セルフホスト型の動画プラットフォーム
-- 社内の企業研修サイト
-- 新興の動画プラットフォーム
-- 地域の動画サービス
+**主要サイトに限定した理由:**
+`<all_urls>`を使用せず主要サイトのみ事前宣言することで、Chrome Web Storeの審査を通過しやすくなります。その他のサイトでも`scripting`権限による動的注入で動作可能なため、ユーザーの利便性は維持されます。
 
 ---
 
@@ -155,7 +179,9 @@ Content scriptsは、ウェブページに必要な機能を注入します：
 ```json
 "web_accessible_resources": [{
   "resources": ["content.css"],
-  "matches": ["<all_urls>"]
+  "matches": [
+    "<all_urls>"
+  ]
 }]
 ```
 
@@ -182,7 +208,7 @@ CSSファイルは、Content Security Policy (CSP)制限のあるページに適
 - **ユーザーが制御可能**（機能を無効化する設定あり）
 
 拡張機能は、以下によりChrome Web Storeのベストプラクティスに従っています：
-- 広範なホスト権限の代わりに`activeTab`を使用
+- content_scriptsは主要サイトのみ事前宣言し、その他は`scripting`APIで動的注入
 - データはローカルにのみ保存（同期ストレージは使用しない）
 - 各権限の明確な説明を提供
 - 動作をカスタマイズするユーザーコントロールを提供

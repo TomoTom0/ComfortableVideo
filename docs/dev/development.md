@@ -250,11 +250,16 @@ const CONFIG = {
 5. 複数動画対応
 
 ### 対象サイト
+
+自動起動（主要サイト）：
 - YouTube
-- Vimeo
-- Netflix
 - Amazon Prime Video
-- その他HTML5動画サイト
+- TVer
+- Netflix
+
+手動起動（その他）：
+- 右クリックメニューまたは拡張機能アイコンから起動
+- HTML5動画プレーヤーを使用するほぼすべてのサイトで動作
 
 ## トラブルシューティング
 

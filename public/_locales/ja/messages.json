@@ -9,7 +9,7 @@
     "message": "快適動画モードを切り替え"
   },
   "contextMenuVideoToggle": {
-    "message": "🎬 この動画を快適モードで表示"
+    "message": "この動画を快適モードで表示"
   },
   "optionsTitle": {
     "message": "設定"
@@ -93,7 +93,13 @@
     "message": "デフォルトに戻す"
   },
   "version": {
-    "message": "Comfortable Video v1.0.0"
+    "message": "Comfortable Video v1.1.4"
+  },
+  "ok": {
+    "message": "OK"
+  },
+  "cancel": {
+    "message": "キャンセル"
   },
   "subtitle": {
     "message": "快適な動画視聴環境を提供するChrome拡張機能"
@@ -136,6 +142,9 @@
   },
   "noVideoFound": {
     "message": "動画が見つかりません"
+  },
+  "waitingForVideo": {
+    "message": "動画の読み込みを待っています..."
   },
   "allSites": {
     "message": "すべてのサイト"
