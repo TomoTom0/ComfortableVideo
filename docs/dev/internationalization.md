@@ -139,9 +139,8 @@ function updateSliderValue(value: number): void {
 // 確認ダイアログ（カスタムダイアログを使用。ブラウザネイティブのconfirm()は禁止）
 function confirmReset(): void {
   const confirmMessage = chrome.i18n.getMessage('resetConfirm');
-  const okLabel = chrome.i18n.getMessage('ok') || 'OK';
-  const cancelLabel = chrome.i18n.getMessage('cancel') || 'Cancel';
-  showConfirmDialog(confirmMessage, okLabel, cancelLabel);
+  // showConfirmDialog内でラベルは解決されるため、ここではメッセージのみ渡す
+  showConfirmDialog(confirmMessage);
 }
 
 // エラーメッセージ

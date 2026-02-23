@@ -180,15 +180,6 @@ Content scriptsは、ウェブページに必要な機能を注入します：
 "web_accessible_resources": [{
   "resources": ["content.css"],
   "matches": [
-    "*://www.youtube.com/*",
-    "*://youtube.com/*",
-    "*://m.youtube.com/*",
-    "*://*.primevideo.com/*",
-    "*://www.amazon.co.jp/*",
-    "*://www.amazon.com/*",
-    "*://tver.jp/*",
-    "*://*.tver.jp/*",
-    "*://*.netflix.com/*",
     "<all_urls>"
   ]
 }]
