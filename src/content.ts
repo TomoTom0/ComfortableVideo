@@ -527,6 +527,7 @@ function maximizeVideo(video: HTMLVideoElement): void {
 
       // CSSクラスで管理
       player.classList.add('comfort-mode-video-container');
+      player.classList.add('comfort-mode-exempt');
 
       // .html5-video-containerもCSSクラスで管理
       const videoContainer = player.querySelector('.html5-video-container') as HTMLElement;
@@ -552,6 +553,7 @@ function maximizeVideo(video: HTMLVideoElement): void {
 
     // 動画要素をbodyに移動（親要素のスタッキングコンテキストから完全に独立）
     document.body.appendChild(video);
+    video.classList.add('comfort-mode-exempt');
     console.log('[Comfortable Video] Video moved to body');
 
     // Prime Video字幕オーバーレイも一緒にbodyに移動
@@ -562,6 +564,7 @@ function maximizeVideo(video: HTMLVideoElement): void {
         nextSibling: captionsOverlay.nextSibling
       };
       document.body.appendChild(captionsOverlay);
+      captionsOverlay.classList.add('comfort-mode-exempt');
       console.log('[Comfortable Video] Prime Video captions overlay moved to body');
     }
 
@@ -581,6 +584,7 @@ function applyZIndexControl(): void {
   // 黒いオーバーレイを作成（画面全体を覆う）
   const overlay = document.createElement('div');
   overlay.id = 'comfort-mode-overlay';
+  overlay.classList.add('comfort-mode-exempt');
   // 最初の子として挿入（すべての要素より前に）
   document.body.insertBefore(overlay, document.body.firstChild);
 
@@ -600,6 +604,11 @@ function removeZIndexControl(): void {
   document.body.classList.remove('comfort-mode-active');
   document.body.classList.remove('video-area-hovered');
   document.body.classList.remove('video-controls-enabled');
+
+  // z-index exempt クラスを全要素から削除
+  document.querySelectorAll('.comfort-mode-exempt').forEach(el => {
+    el.classList.remove('comfort-mode-exempt');
+  });
 
   // 動画からクラスを削除
   const videos = document.querySelectorAll('video.comfort-mode-video') as NodeListOf<HTMLVideoElement>;
@@ -940,6 +949,7 @@ function updateExitButtonOpacity(isInVideoArea: boolean): void {
 function showExitButton(): void {
   exitButton = document.createElement('div');
   exitButton.id = 'comfort-mode-exit-button';
+  exitButton.classList.add('comfort-mode-exempt');
   exitButton.innerHTML = '×'; // シンプルな×記号
   exitButton.title = chrome.i18n.getMessage('comfortModeExitTooltip'); // ツールチップで説明
 
@@ -959,6 +969,7 @@ function showCustomControls(): void {
   // コントロールコンテナを作成
   customControls = document.createElement('div');
   customControls.id = 'comfort-mode-custom-controls';
+  customControls.classList.add('comfort-mode-exempt');
 
   // 30秒戻しボタン
   const rewind30Btn = document.createElement('button');
