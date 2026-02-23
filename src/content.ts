@@ -497,7 +497,7 @@ function enableComfortMode(): void {
 
 // 動画を画面いっぱいに最大化する関数
 function maximizeVideo(video: HTMLVideoElement): void {
-  // YouTubeの場合は#movie_playerを拡大
+  // YouTubeの場合は#movie_playerをbodyに移動（ytd-app内ではz-index競合が起きるため）
   if (isYouTube()) {
     const player = document.getElementById('movie_player');
     if (player) {
@@ -514,7 +514,18 @@ function maximizeVideo(video: HTMLVideoElement): void {
         transform: computedStyle.transform
       });
 
-      // CSSクラスで管理（インラインスタイルは使用しない）
+      // 元の親要素と位置を記憶
+      if (player.parentElement) {
+        originalVideoParent = {
+          parent: player.parentElement,
+          nextSibling: player.nextSibling
+        };
+      }
+
+      // bodyに移動（ytd-app内ではz-indexが正しく機能しないため）
+      document.body.appendChild(player);
+
+      // CSSクラスで管理
       player.classList.add('comfort-mode-video-container');
 
       // .html5-video-containerもCSSクラスで管理
@@ -1301,11 +1312,20 @@ function disableComfortMode(): void {
   // z-index制御を解除
   removeZIndexControl();
 
-  // YouTube用のコンテナクラスを削除
+  // YouTube用のコンテナクラスを削除し、元の位置に戻す
   if (isYouTube()) {
     const player = document.getElementById('movie_player');
     if (player) {
       player.classList.remove('comfort-mode-video-container');
+      // bodyに移動した#movie_playerを元の位置に戻す
+      if (originalVideoParent) {
+        if (originalVideoParent.nextSibling) {
+          originalVideoParent.parent.insertBefore(player, originalVideoParent.nextSibling);
+        } else {
+          originalVideoParent.parent.appendChild(player);
+        }
+        originalVideoParent = null;
+      }
     }
     const videoContainer = document.querySelector('.html5-video-container');
     if (videoContainer) {
