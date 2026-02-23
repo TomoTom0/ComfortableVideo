@@ -42,9 +42,30 @@ body.comfort-mode-active *:not(.comfort-mode-video):not(.comfort-mode-video-cont
 
 low（現状問題なし、将来的な改善として記録）
 
+### comfort-mode-exempt クラス導入案（PR#9 レビュー指摘）
+
+除外する要素に共通クラス `comfort-mode-exempt` をJSで付与し、CSSセレクターを単純化：
+
+```scss
+body.comfort-mode-active *:not(.comfort-mode-exempt) {
+  z-index: $z-index-limited !important;
+}
+```
+
+この変更によりCSSがクリーンになり、パフォーマンスも向上する可能性がある。
+ただしロジックがJS側に移行するため、対象要素の管理が必要。
+
+## 優先度
+
+low（現状問題なし、将来的な改善として記録）
+
 ## 関連
 
 - PR: #2
 - Thread ID: PRRT_kwDOPw4NUM5nUou2
 - タスク: TASK-4
 - 関連ファイル: src/content.ts:647, public/content.css
+- PR: #9
+- Thread ID: PRRT_kwDOPw4NUM5wDGKv
+- タスク: TASK-25
+- 関連ファイル: src/content.scss:232
