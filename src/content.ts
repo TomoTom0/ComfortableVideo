@@ -1319,10 +1319,14 @@ function disableComfortMode(): void {
       player.classList.remove('comfort-mode-video-container');
       // bodyに移動した#movie_playerを元の位置に戻す
       if (originalVideoParent) {
-        if (originalVideoParent.nextSibling) {
-          originalVideoParent.parent.insertBefore(player, originalVideoParent.nextSibling);
+        if (document.body.contains(originalVideoParent.parent)) {
+          if (originalVideoParent.nextSibling && originalVideoParent.parent.contains(originalVideoParent.nextSibling)) {
+            originalVideoParent.parent.insertBefore(player, originalVideoParent.nextSibling);
+          } else {
+            originalVideoParent.parent.appendChild(player);
+          }
         } else {
-          originalVideoParent.parent.appendChild(player);
+          console.warn('[Comfortable Video] Original parent element not found. Cannot restore player position.');
         }
         originalVideoParent = null;
       }
@@ -1336,10 +1340,14 @@ function disableComfortMode(): void {
     if (originalVideoParent && currentActiveVideo) {
       console.log('[Comfortable Video] Restoring video to original position');
       const video = currentActiveVideo;
-      if (originalVideoParent.nextSibling) {
-        originalVideoParent.parent.insertBefore(video, originalVideoParent.nextSibling);
+      if (document.body.contains(originalVideoParent.parent)) {
+        if (originalVideoParent.nextSibling && originalVideoParent.parent.contains(originalVideoParent.nextSibling)) {
+          originalVideoParent.parent.insertBefore(video, originalVideoParent.nextSibling);
+        } else {
+          originalVideoParent.parent.appendChild(video);
+        }
       } else {
-        originalVideoParent.parent.appendChild(video);
+        console.warn('[Comfortable Video] Original parent element not found. Cannot restore video position.');
       }
       originalVideoParent = null;
     }
@@ -1349,10 +1357,14 @@ function disableComfortMode(): void {
       const captionsOverlay = document.querySelector('.atvwebplayersdk-captions-overlay') as HTMLElement;
       if (captionsOverlay) {
         console.log('[Comfortable Video] Restoring Prime Video captions overlay to original position');
-        if (originalCaptionsParent.nextSibling) {
-          originalCaptionsParent.parent.insertBefore(captionsOverlay, originalCaptionsParent.nextSibling);
+        if (document.body.contains(originalCaptionsParent.parent)) {
+          if (originalCaptionsParent.nextSibling && originalCaptionsParent.parent.contains(originalCaptionsParent.nextSibling)) {
+            originalCaptionsParent.parent.insertBefore(captionsOverlay, originalCaptionsParent.nextSibling);
+          } else {
+            originalCaptionsParent.parent.appendChild(captionsOverlay);
+          }
         } else {
-          originalCaptionsParent.parent.appendChild(captionsOverlay);
+          console.warn('[Comfortable Video] Original parent element not found. Cannot restore captions overlay position.');
         }
       }
       originalCaptionsParent = null;
