@@ -12,9 +12,9 @@
 ### ✅ 権限
 - **ポリシー:** 必要な権限のみを要求し、明確な根拠を示す
 - **準拠状況:**
-  - 3つの権限のみ要求（activeTab, contextMenus, storage）
+  - 4つの権限のみ要求（activeTab, contextMenus, scripting, storage）
   - 各権限に文書化された根拠がある
-  - 広範なホスト権限なし（activeTabを使用）
+  - content_scriptsは主要サイト限定、その他は`scripting`APIで動的注入
 - **ドキュメント:** `permissions-justification.md`を参照
 
 ### ✅ ユーザーデータとプライバシー
@@ -207,8 +207,8 @@ Chrome Web Storeのレビュアーが説明を求めた場合：
 
 ### よくある質問と準備済みの回答
 
-**Q: content scriptがなぜ`<all_urls>`を使用しているのか？**
-A: `permissions-justification.md`を参照 - ユーザーがYouTube/Primeだけでなく、あらゆる動画サイトで快適モードを使用できるようにするため。設定でサイト別の有効化を尊重。
+**Q: content scriptの対象サイトが限定されているが、他のサイトでも動作するか？**
+A: `permissions-justification.md`を参照 - 主要サイト（YouTube、Amazon Prime Video、TVer、Netflix）では自動起動。それ以外のサイトでは`scripting`権限を使い動的注入するため、右クリックメニューまたはアイコンクリックで起動可能。
 
 **Q: どのようなデータが収集されるか？**
 A: ゼロ。`privacy-policy.md`を参照 - 全ての設定はchrome.storage.localを使用してローカルに保存。外部送信なし。分析なし。
@@ -239,5 +239,5 @@ A: なし。`third-party-disclosure.md`を参照 - 全てのコードがオリ�
 
 ---
 
-**コンプライアンス検証日:** 2026-02-16
+**コンプライアンス検証日:** 2026-02-23
 **次回レビュー:** 各バージョン更新前

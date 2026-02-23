@@ -201,6 +201,7 @@ function localizeUI() {
         }
     });
     document.title = chrome.i18n.getMessage('optionsTitle') || 'Comfortable Video - Options';
+    document.documentElement.lang = chrome.i18n.getUILanguage();
 }
 document.addEventListener('DOMContentLoaded', async () => {
     localizeUI();

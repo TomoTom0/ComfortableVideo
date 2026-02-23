@@ -9,7 +9,7 @@
     "message": "切换舒适视频模式"
   },
   "contextMenuVideoToggle": {
-    "message": "🎬 以舒适模式显示此视频"
+    "message": "以舒适模式显示此视频"
   },
   "optionsTitle": {
     "message": "选项"
@@ -93,7 +93,13 @@
     "message": "重置为默认"
   },
   "version": {
-    "message": "Comfortable Video v1.0.0"
+    "message": "Comfortable Video v1.1.4"
+  },
+  "ok": {
+    "message": "确定"
+  },
+  "cancel": {
+    "message": "取消"
   },
   "subtitle": {
     "message": "为舒适的视频观看提供Chrome扩展"
@@ -136,6 +142,9 @@
   },
   "noVideoFound": {
     "message": "未找到视频"
+  },
+  "waitingForVideo": {
+    "message": "正在等待视频加载..."
   },
   "allSites": {
     "message": "所有网站"

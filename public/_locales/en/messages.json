@@ -9,7 +9,7 @@
     "message": "Toggle Comfortable Video Mode"
   },
   "contextMenuVideoToggle": {
-    "message": "🎬 Display this video in comfort mode"
+    "message": "Display this video in comfort mode"
   },
   "optionsTitle": {
     "message": "Options"
@@ -93,7 +93,13 @@
     "message": "Reset to Default"
   },
   "version": {
-    "message": "Comfortable Video v1.0.0"
+    "message": "Comfortable Video v1.1.4"
+  },
+  "ok": {
+    "message": "OK"
+  },
+  "cancel": {
+    "message": "Cancel"
   },
   "subtitle": {
     "message": "Chrome extension for comfortable video viewing"
@@ -136,6 +142,9 @@
   },
   "noVideoFound": {
     "message": "No video found"
+  },
+  "waitingForVideo": {
+    "message": "Waiting for video to load..."
   },
   "allSites": {
     "message": "All Sites"
