@@ -229,7 +229,7 @@ body.comfort-mode-active {
 
 /* z-index制御 */
 body.comfort-mode-active {
-  *:not(.comfort-mode-video):not(.comfort-mode-video-container):not(#comfort-mode-exit-button):not(#comfort-mode-custom-controls):not(#comfort-mode-custom-controls *):not(#comfort-mode-overlay):not(#movie_player):not(#movie_player *):not(.atvwebplayersdk-captions-overlay):not(.atvwebplayersdk-captions-overlay *):not(:has(.atvwebplayersdk-captions-overlay)) {
+  *:not(.comfort-mode-video):not(.comfort-mode-video-container):not(#comfort-mode-exit-button):not(#comfort-mode-custom-controls):not(#comfort-mode-custom-controls *):not(#comfort-mode-overlay):not(#movie_player):not(#movie_player *):not(.atvwebplayersdk-captions-overlay):not(.atvwebplayersdk-captions-overlay *):not(:has(.atvwebplayersdk-captions-overlay)):not(:has(#movie_player)) {
     z-index: $z-index-limited !important;
   }
 

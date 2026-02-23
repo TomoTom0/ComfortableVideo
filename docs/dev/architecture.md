@@ -119,9 +119,20 @@ style.textContent = `
 ```
 
 #### サイト別対応
-- **YouTube**: `.ytp-right-controls` への快適モードボタン追加
-- **Amazon Prime Video**: `.atvwebplayersdk-hideabletopbuttons-container` への対応
-- **汎用サイト**: 標準的な動画プレーヤー対応
+
+**YouTube**:
+- `.ytp-right-controls` への快適モードボタン追加
+- 快適モード有効化時、`#movie_player` を `document.body` の直接の子として移動
+  - **理由**: `ytd-app`（`position: absolute`）の子孫要素は、`position: fixed` と高い `z-index` を設定しても黒いオーバーレイの背面に隠れる問題がある
+  - `#movie_player` を body に移動することで z-index 競合を回避
+  - 快適モード解除時に元の親要素・位置に復元
+
+**Amazon Prime Video**:
+- `.atvwebplayersdk-hideabletopbuttons-container` へのボタン追加
+- `video` 要素と字幕オーバーレイ（`.atvwebplayersdk-captions-overlay`）を body に移動して z-index 競合を回避
+
+**汎用サイト**:
+- `video` 要素を `document.body` に移動して親要素のスタッキングコンテキストから独立させる
 
 ### 3. Options Page (`options.ts`, `options.html`)
 
