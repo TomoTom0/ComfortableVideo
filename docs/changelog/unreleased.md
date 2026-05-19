@@ -2,6 +2,26 @@
 
 ## Features
 
+### 東映特撮ファンクラブ (TTFC) 対応
+
+**対象URL**:
+- `https://pc.tokusatsu-fc.jp/contents?` 等のコンテンツ一覧・視聴ページ
+- `https://pc.tokusatsu-fc.jp/movies/*/movie-stories/*` の movie-stories ページ
+
+**概要**:
+- TTFC (pc.tokusatsu-fc.jp) で快適モードを使用可能にした
+- プレーヤーコントロールバーに快適モードボタンを追加
+- URLパターンによって HTML 構造が異なるため個別に対応
+
+**URLパターン別の実装**:
+- contents等のページ: Video.js プレーヤー (`#movie-player`)、コントロールバーは `#movie-player .vjs-control-bar`
+- movie-stories ページ: 独自プレーヤー (`#player-wrapper`)、コントロールバーは `.player-bottom-bar`（Video.js 不使用）、快適モード中は独自コントロールを非表示にして拡張機能の共通コントロールを使用
+
+**関連ファイル**:
+- `src/content.ts`: `isTTFC()`, `isTTFCMovieStories()`, TTFC分岐処理の追加
+- `src/content.scss`: 快適モード中の `#player-controls` 非表示ルール追加
+- `public/manifest.json`: `*://pc.tokusatsu-fc.jp/*` を content_scripts に追加
+
 ### カスタムコントロールにミュートボタンを追加
 
 **概要**:

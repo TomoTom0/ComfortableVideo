@@ -35,6 +35,9 @@ let youtubeControlButton: HTMLElement | null = null;
 // Amazon Prime Video用コントロールボタンの要素
 let primeControlButton: HTMLElement | null = null;
 
+// 東映特撮ファンクラブ用コントロールボタンの要素
+let ttfcControlButton: HTMLElement | null = null;
+
 // 動画要素の元の親要素と位置を記憶
 let originalVideoParent: {
   parent: HTMLElement;
@@ -68,16 +71,7 @@ const UNMUTED_ICON_SVG = `
   </svg>
 `;
 
-// YouTube用の機能
-function isYouTube(): boolean {
-  return window.location.hostname === 'www.youtube.com' || window.location.hostname === 'youtube.com';
-}
-
-// Amazon Prime Video用の機能
-function isPrimeVideo(): boolean {
-  return window.location.hostname.includes('amazon.') ||
-         window.location.hostname.includes('primevideo.');
-}
+import { isYouTube, isTTFC, isTTFCMovieStories, isPrimeVideo } from './utils/site-detection';
 
 // YouTubeボタンの状態を更新
 function updateYouTubeButtonState(): void {
@@ -199,6 +193,109 @@ function removeYouTubeControlButton(): void {
     youtubeControlButton.remove();
     youtubeControlButton = null;
   }
+}
+
+// TTFCコントロールボタンの状態を更新
+function updateTTFCButtonState(): void {
+  if (!ttfcControlButton) return;
+
+  if (isComfortModeActive) {
+    ttfcControlButton.classList.add('active');
+    ttfcControlButton.title = chrome.i18n.getMessage('comfortModeTooltipOn');
+  } else {
+    ttfcControlButton.classList.remove('active');
+    ttfcControlButton.title = chrome.i18n.getMessage('comfortModeTooltip');
+  }
+}
+
+// TTFCコントロールボタンを追加
+function addTTFCControlButton(): void {
+  if (!isTTFC() || ttfcControlButton) return;
+
+  let controlBar: Element | null;
+  let fullscreenBtn: Element | null;
+
+  if (isTTFCMovieStories()) {
+    // movie-stories ページは独自コントロールバー (.player-bottom-bar)
+    controlBar = document.querySelector('.player-bottom-bar .flex.items-end.gap-2');
+    fullscreenBtn = document.getElementById('player-fullscreen-btn');
+  } else {
+    // contents 等は Video.js コントロールバー
+    controlBar = document.querySelector('#movie-player .vjs-control-bar');
+    fullscreenBtn = controlBar?.querySelector('.vjs-fullscreen-control') ?? null;
+  }
+
+  if (!controlBar) return;
+
+  ttfcControlButton = document.createElement('button');
+  ttfcControlButton.className = 'comfort-mode-button ttfc-control';
+  ttfcControlButton.title = chrome.i18n.getMessage('comfortModeTooltip');
+  ttfcControlButton.innerHTML = `
+    <svg width="24" height="24" viewBox="0 0 128 128" fill="white">
+      <rect x="40" y="50" width="48" height="40" rx="8" fill="white"/>
+      <rect x="52" y="35" width="6" height="20" rx="3" fill="white"/>
+      <rect x="70" y="35" width="6" height="20" rx="3" fill="white"/>
+      <path d="M64 65 C58 65 54 69 54 74 C54 79 58 83 64 83" stroke="#2d5aa0" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <line x1="64" y1="25" x2="64" y2="35" stroke="white" stroke-width="3"/>
+    </svg>
+  `;
+
+  ttfcControlButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (isComfortModeActive) {
+      disableComfortMode();
+    } else {
+      enableComfortMode();
+    }
+  });
+
+  if (fullscreenBtn) {
+    controlBar.insertBefore(ttfcControlButton, fullscreenBtn);
+  } else {
+    controlBar.appendChild(ttfcControlButton);
+  }
+
+  updateTTFCButtonState();
+}
+
+// TTFCコントロールボタンを削除
+function removeTTFCControlButton(): void {
+  if (ttfcControlButton) {
+    ttfcControlButton.remove();
+    ttfcControlButton = null;
+  }
+}
+
+// TTFC用のMutationObserverを設定
+function setupTTFCObserver(): void {
+  if (!isTTFC()) return;
+
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as Element;
+            const isMovieStories = isTTFCMovieStories();
+            const selector = isMovieStories ? '.player-bottom-bar' : '#movie-player .vjs-control-bar';
+            const className = isMovieStories ? 'player-bottom-bar' : 'vjs-control-bar';
+            if (element.querySelector(selector) || element.classList.contains(className)) {
+              setTimeout(addTTFCControlButton, 100);
+            }
+          }
+        });
+      }
+    });
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
+  setTimeout(addTTFCControlButton, 1000);
 }
 
 // Prime Video用のMutationObserverを設定
@@ -491,6 +588,9 @@ function enableComfortMode(): void {
   // Prime Videoボタンの状態を更新
   updatePrimeButtonState();
 
+  // TTFCボタンの状態を更新
+  updateTTFCButtonState();
+
   // Prime Video字幕監視を開始
   startPrimeCaptionsObserver();
 }
@@ -503,8 +603,8 @@ function maximizeVideo(video: HTMLVideoElement): void {
     if (player) {
       // 元のスタイルを保存
       const computedStyle = window.getComputedStyle(player);
-      originalVideoStyles.set(player as any, {
-        inlineStyle: (player as HTMLElement).getAttribute('style'),
+      originalVideoStyles.set(player, {
+        inlineStyle: player.getAttribute('style'),
         position: computedStyle.position,
         top: computedStyle.top,
         left: computedStyle.left,
@@ -534,6 +634,31 @@ function maximizeVideo(video: HTMLVideoElement): void {
       if (videoContainer) {
         videoContainer.classList.add('comfort-mode-video-container');
       }
+    }
+  } else if (isTTFC()) {
+    const playerId = isTTFCMovieStories() ? 'player-wrapper' : 'movie-player';
+    const player = document.getElementById(playerId);
+    if (player && player.parentElement) {
+      const computedStyle = window.getComputedStyle(player);
+      originalVideoStyles.set(player, {
+        inlineStyle: player.getAttribute('style'),
+        position: computedStyle.position,
+        top: computedStyle.top,
+        left: computedStyle.left,
+        width: computedStyle.width,
+        height: computedStyle.height,
+        zIndex: computedStyle.zIndex,
+        transform: computedStyle.transform
+      });
+
+      originalVideoParent = {
+        parent: player.parentElement,
+        nextSibling: player.nextSibling
+      };
+
+      document.body.appendChild(player);
+      player.classList.add('comfort-mode-video-container');
+      player.classList.add('comfort-mode-exempt');
     }
   } else {
     // 他のサイトでは動画要素を直接拡大
@@ -1346,6 +1471,24 @@ function disableComfortMode(): void {
     if (videoContainer) {
       videoContainer.classList.remove('comfort-mode-video-container');
     }
+  } else if (isTTFC()) {
+    const playerId = isTTFCMovieStories() ? 'player-wrapper' : 'movie-player';
+    const player = document.getElementById(playerId);
+    if (player) {
+      player.classList.remove('comfort-mode-video-container');
+      if (originalVideoParent) {
+        if (document.body.contains(originalVideoParent.parent)) {
+          if (originalVideoParent.nextSibling && originalVideoParent.parent.contains(originalVideoParent.nextSibling)) {
+            originalVideoParent.parent.insertBefore(player, originalVideoParent.nextSibling);
+          } else {
+            originalVideoParent.parent.appendChild(player);
+          }
+        } else {
+          console.warn('[Comfortable Video] Original parent element not found. Cannot restore TTFC player position.');
+        }
+        originalVideoParent = null;
+      }
+    }
   } else {
     // 他のサイトでは動画要素を元の位置に戻す
     if (originalVideoParent && currentActiveVideo) {
@@ -1415,6 +1558,9 @@ function disableComfortMode(): void {
 
   // Prime Videoボタンの状態を更新
   updatePrimeButtonState();
+
+  // TTFCボタンの状態を更新
+  updateTTFCButtonState();
 }
 
 // バックグラウンドスクリプトからのメッセージを受信
@@ -1492,6 +1638,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupYouTubeObserver();
   } else if (isPrimeVideo()) {
     setupPrimeObserver();
+  } else if (isTTFC()) {
+    setupTTFCObserver();
   }
 });
 
@@ -1502,6 +1650,8 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     setupYouTubeObserver();
   } else if (isPrimeVideo()) {
     setupPrimeObserver();
+  } else if (isTTFC()) {
+    setupTTFCObserver();
   }
 }
 
