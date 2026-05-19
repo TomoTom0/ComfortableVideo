@@ -191,6 +191,11 @@ body.comfort-mode-active {
   video.comfort-mode-video {
     pointer-events: auto !important;
   }
+
+  /* TTFC movie-stories の独自コントロールを非表示 */
+  #player-controls {
+    display: none !important;
+  }
 }
 
 /* 動画の最大化スタイル */

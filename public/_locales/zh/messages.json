@@ -77,6 +77,9 @@
   "enablePrimeVideo": {
     "message": "Amazon Prime Video"
   },
+  "enableTTFC": {
+    "message": "东映特摄粉丝俱乐部"
+  },
   "enableAllSites": {
     "message": "所有网站"
   },

@@ -27,6 +27,7 @@ Chrome Web Store公開用の資料とドキュメント：
 - `development-guide.md` - 開発ガイド
 - `development.md` - 開発者向け情報
 - `internationalization.md` - 多言語対応（i18n）実装ガイド
+- `add-site/` - 新サイト対応手順
 - `feature/` - 技術的負債・将来の改善案
 
 ### `user/`

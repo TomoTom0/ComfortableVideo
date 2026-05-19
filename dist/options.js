@@ -49,6 +49,7 @@ const defaultSettings = {
     showVideoContextMenu: true,
     enableYoutube: true,
     enablePrimeVideo: true,
+    enableTTFC: true,
     enableAllSites: true,
     exitButtonOpacity: 20
 };
@@ -63,6 +64,7 @@ const elements = {
     showVideoContextMenu: document.getElementById('showVideoContextMenu'),
     enableYoutube: document.getElementById('enableYoutube'),
     enablePrimeVideo: document.getElementById('enablePrimeVideo'),
+    enableTTFC: document.getElementById('enableTTFC'),
     enableAllSites: document.getElementById('enableAllSites'),
     exitButtonOpacity: document.getElementById('exitButtonOpacity'),
     exitButtonOpacityValue: document.getElementById('exitButtonOpacityValue'),
@@ -84,6 +86,7 @@ async function loadSettings() {
         elements.showVideoContextMenu.checked = settings.showVideoContextMenu;
         elements.enableYoutube.checked = settings.enableYoutube;
         elements.enablePrimeVideo.checked = settings.enablePrimeVideo;
+        elements.enableTTFC.checked = settings.enableTTFC;
         elements.enableAllSites.checked = settings.enableAllSites;
         elements.exitButtonOpacity.value = settings.exitButtonOpacity.toString();
         const percentUnit = chrome.i18n.getMessage('percentUnit') || '%';
@@ -105,6 +108,7 @@ async function saveSettings() {
             showVideoContextMenu: elements.showVideoContextMenu.checked,
             enableYoutube: elements.enableYoutube.checked,
             enablePrimeVideo: elements.enablePrimeVideo.checked,
+            enableTTFC: elements.enableTTFC.checked,
             enableAllSites: elements.enableAllSites.checked,
             exitButtonOpacity: parseInt(elements.exitButtonOpacity.value)
         };

@@ -104,6 +104,7 @@ Comfortable Videoは、ウェブ上の動画を快適に視聴するためのChr
 以下のサイトでは自動的に有効化されます：
 - YouTube
 - Amazon Prime Video
+- 東映特撮ファンクラブ (pc.tokusatsu-fc.jp)
 - TVer
 - Netflix
 

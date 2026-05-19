@@ -9,6 +9,7 @@ interface ComfortModeSettings {
   showVideoContextMenu: boolean;
   enableYoutube: boolean;
   enablePrimeVideo: boolean;
+  enableTTFC: boolean;
   enableAllSites: boolean;
   exitButtonOpacity: number;
 }
@@ -76,6 +77,7 @@ const defaultSettings: ComfortModeSettings = {
   showVideoContextMenu: true,
   enableYoutube: true,
   enablePrimeVideo: true,
+  enableTTFC: true,
   enableAllSites: true,
   exitButtonOpacity: 20
 };
@@ -92,6 +94,7 @@ const elements = {
   showVideoContextMenu: document.getElementById('showVideoContextMenu') as HTMLInputElement,
   enableYoutube: document.getElementById('enableYoutube') as HTMLInputElement,
   enablePrimeVideo: document.getElementById('enablePrimeVideo') as HTMLInputElement,
+  enableTTFC: document.getElementById('enableTTFC') as HTMLInputElement,
   enableAllSites: document.getElementById('enableAllSites') as HTMLInputElement,
   exitButtonOpacity: document.getElementById('exitButtonOpacity') as HTMLInputElement,
   exitButtonOpacityValue: document.getElementById('exitButtonOpacityValue') as HTMLSpanElement,
@@ -119,6 +122,7 @@ async function loadSettings(): Promise<void> {
     elements.showVideoContextMenu.checked = settings.showVideoContextMenu;
     elements.enableYoutube.checked = settings.enableYoutube;
     elements.enablePrimeVideo.checked = settings.enablePrimeVideo;
+    elements.enableTTFC.checked = settings.enableTTFC;
     elements.enableAllSites.checked = settings.enableAllSites;
 
     elements.exitButtonOpacity.value = settings.exitButtonOpacity.toString();
@@ -143,6 +147,7 @@ async function saveSettings(): Promise<void> {
       showVideoContextMenu: elements.showVideoContextMenu.checked,
       enableYoutube: elements.enableYoutube.checked,
       enablePrimeVideo: elements.enablePrimeVideo.checked,
+      enableTTFC: elements.enableTTFC.checked,
       enableAllSites: elements.enableAllSites.checked,
       exitButtonOpacity: parseInt(elements.exitButtonOpacity.value)
     };

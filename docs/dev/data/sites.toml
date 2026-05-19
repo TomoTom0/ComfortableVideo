@@ -1,0 +1,83 @@
+# 対応サイト一覧
+# 各サイトの対応URLパターン・HTML構造・実装方式を記録する
+
+[[site]]
+name = "YouTube"
+handler = "isYouTube"
+manifest_matches = [
+  "*://www.youtube.com/*",
+  "*://youtube.com/*",
+  "*://m.youtube.com/*",
+]
+
+  [[site.url_pattern]]
+  description = "動画視聴ページ"
+  example = "https://www.youtube.com/watch?v=xxx"
+  player_element = "#movie_player"
+  control_bar = ".ytp-right-controls"
+  move_to_body = "#movie_player"
+
+[[site]]
+name = "Amazon Prime Video"
+handler = "isPrimeVideo"
+manifest_matches = [
+  "*://*.primevideo.com/*",
+  "*://www.amazon.co.jp/*/video/*",
+  "*://www.amazon.com/*/video/*",
+]
+
+  [[site.url_pattern]]
+  description = "動画視聴ページ"
+  example = "https://www.amazon.co.jp/gp/video/detail/xxx"
+  control_bar = "div.atvwebplayersdk-hideabletopbuttons-container"
+  move_to_body = "video, .atvwebplayersdk-captions-overlay"
+
+[[site]]
+name = "東映特撮ファンクラブ (TTFC)"
+handler = "isTTFC"
+manifest_matches = [
+  "*://pc.tokusatsu-fc.jp/*",
+]
+
+  [[site.url_pattern]]
+  description = "コンテンツ一覧・通常視聴ページ"
+  example = "https://pc.tokusatsu-fc.jp/contents?"
+  url_condition = 'isTTFC() && !isTTFCMovieStories()'
+  player_element = "#movie-player"
+  control_bar = "#movie-player .vjs-control-bar"
+  move_to_body = "#movie-player"
+
+  [[site.url_pattern]]
+  description = "movie-stories 視聴ページ"
+  example = "https://pc.tokusatsu-fc.jp/movies/6288/movie-stories/6290"
+  url_condition = 'isTTFCMovieStories()  # pathname に /movie-stories/ を含む'
+  player_element = "#player-wrapper"
+  control_bar = ".player-bottom-bar .flex.items-end.gap-2"
+  fullscreen_btn = "#player-fullscreen-btn"
+  move_to_body = "#player-wrapper"
+  note = "Video.js の .vjs-control-bar は存在せず独自コントロール (#player-controls > .player-bottom-bar) を使用。快適モード中は #player-controls を非表示にして拡張機能の共通コントロールを使用"
+
+[[site]]
+name = "TVer"
+handler = "(generic)"
+manifest_matches = [
+  "*://tver.jp/*",
+  "*://*.tver.jp/*",
+]
+
+  [[site.url_pattern]]
+  description = "動画視聴ページ"
+  example = "https://tver.jp/episodes/xxx"
+  move_to_body = "video (generic handler)"
+
+[[site]]
+name = "Netflix"
+handler = "(generic)"
+manifest_matches = [
+  "*://*.netflix.com/*",
+]
+
+  [[site.url_pattern]]
+  description = "動画視聴ページ"
+  example = "https://www.netflix.com/watch/xxx"
+  move_to_body = "video (generic handler)"

@@ -24,7 +24,8 @@
         "*://www.amazon.com/*/video/*",
         "*://tver.jp/*",
         "*://*.tver.jp/*",
-        "*://*.netflix.com/*"
+        "*://*.netflix.com/*",
+        "*://pc.tokusatsu-fc.jp/*"
       ],
       "js": ["content.js"],
       "css": ["content.css"],
