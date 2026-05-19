@@ -50,7 +50,7 @@ manifest_matches = [
   [[site.url_pattern]]
   description = "movie-stories 視聴ページ"
   example = "https://pc.tokusatsu-fc.jp/movies/6288/movie-stories/6290"
-  url_condition = 'isTTFCMovieStories()  # pathname に /movie-stories/ を含む'
+  url_condition = 'isTTFCMovieStories()'  # pathname に /movie-stories/ を含む
   player_element = "#player-wrapper"
   control_bar = ".player-bottom-bar .flex.items-end.gap-2"
   fullscreen_btn = "#player-fullscreen-btn"

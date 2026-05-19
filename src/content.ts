@@ -278,12 +278,10 @@ function setupTTFCObserver(): void {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const element = node as Element;
-            const barSelector = isTTFCMovieStories()
-              ? '.player-bottom-bar'
-              : '#movie-player .vjs-control-bar';
-            if (element.querySelector(barSelector) ||
-                element.classList.contains('player-bottom-bar') ||
-                element.classList.contains('vjs-control-bar')) {
+            const isMovieStories = isTTFCMovieStories();
+            const selector = isMovieStories ? '.player-bottom-bar' : '#movie-player .vjs-control-bar';
+            const className = isMovieStories ? 'player-bottom-bar' : 'vjs-control-bar';
+            if (element.querySelector(selector) || element.classList.contains(className)) {
               setTimeout(addTTFCControlButton, 100);
             }
           }
@@ -605,8 +603,8 @@ function maximizeVideo(video: HTMLVideoElement): void {
     if (player) {
       // 元のスタイルを保存
       const computedStyle = window.getComputedStyle(player);
-      originalVideoStyles.set(player as any, {
-        inlineStyle: (player as HTMLElement).getAttribute('style'),
+      originalVideoStyles.set(player, {
+        inlineStyle: player.getAttribute('style'),
         position: computedStyle.position,
         top: computedStyle.top,
         left: computedStyle.left,
@@ -642,8 +640,8 @@ function maximizeVideo(video: HTMLVideoElement): void {
     const player = document.getElementById(playerId);
     if (player && player.parentElement) {
       const computedStyle = window.getComputedStyle(player);
-      originalVideoStyles.set(player as any, {
-        inlineStyle: (player as HTMLElement).getAttribute('style'),
+      originalVideoStyles.set(player, {
+        inlineStyle: player.getAttribute('style'),
         position: computedStyle.position,
         top: computedStyle.top,
         left: computedStyle.left,

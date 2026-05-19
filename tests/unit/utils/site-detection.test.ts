@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { isYouTube, isTTFC, isTTFCMovieStories, isPrimeVideo } from '../../../src/utils/site-detection';
 
 function setLocation(url: string): void {
