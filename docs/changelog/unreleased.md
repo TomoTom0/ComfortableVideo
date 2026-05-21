@@ -46,6 +46,61 @@
 
 ## Bug Fixes
 
+### カスタムコントロールの非表示タイミングを修正
+
+**問題**:
+- 快適モード中、カスタムコントロールパネルが消えるまでに最大8秒程度かかる場合があった
+
+**原因**:
+- マウス移動のたびに3000msの非表示タイマーをリセットしていた（動画エリア全体を監視）
+- 動画内でマウスを動かし続けると「移動時間 + 3秒」後にしか消えなかった
+
+**修正内容**:
+- 非表示ロジックの基準を「動画エリア全体」から「カスタムコントロールパネル自体のBoundingRect」に変更
+- コントロールパネル外にカーソルが出た時点から `CONTROLS_HIDE_DELAY`（500ms）後に非表示
+
+**関連ファイル**:
+- `src/content.ts`: `handleMouseMove()` 内の監視ロジック変更、`CONTROLS_HIDE_DELAY` 等の定数追加
+
+### コントロールエリアが動画より奥に隠れる・表示されない問題の修正
+
+**問題**:
+- 上下に余白がない（動画がレターボックスなしで画面全体を埋める）場合、カスタムコントロールや解除ボタンが動画の背後に隠れる、または表示されない
+
+**原因**:
+1. HTML5 video 要素が Chrome の GPU コンポジットレイヤーで CSS z-index を無視してレンダリングされることがある
+2. ページ側の `body` に `transform` が設定されているサイトでは、`position: fixed` が `body` 基準の absolute 相当になり、`overflow: hidden` で固定要素がクリップされる
+
+**修正内容**:
+1. `#comfort-mode-custom-controls` と `#comfort-mode-exit-button` に `translateZ(0)` を追加し、GPU コンポジットレイヤーに強制昇格（video 要素より確実に前面でレンダリング）
+2. `html` 要素にも `comfort-mode-scroll-lock` クラスを付与してスクロール防止を適用（body の transform による fixed 要素クリップを回避）
+
+**関連ファイル**:
+- `src/content.scss`: `translateZ(0)` 追加、`html.comfort-mode-scroll-lock` スタイル追加
+- `src/content.ts`: `applyZIndexControl()` / `removeZIndexControl()` で `html` クラス付与・削除
+
+### TTFC連続再生で快適モードが自動解除される問題の修正
+
+**問題**:
+- 東映特撮ファンクラブ（TTFC）等でエピソードを連続再生する際、エピソードの切り替えタイミングで快適モードが自動解除され、次のエピソードで手動で再有効化が必要になる
+
+**原因**:
+- エピソード終了時に `checkVideoEnded()` が `disableComfortMode()` を呼び出す（正常な動作）
+- ただし次のエピソードが始まっても快適モードは自動復帰しなかった
+
+**修正内容**:
+- ユーザー操作（×ボタン、ESCキー、コントロールボタン）による解除と、自動解除（動画終了・DOM削除）を区別
+- 自動解除後は `startAutoReenableWatcher()` で新しい動画を待機し、準備ができ次第自動的に快適モードを再有効化
+- 30秒以内に次の動画が見つからない場合はタイムアウトして自動再有効化をキャンセル
+
+**技術的詳細**:
+- `disableComfortModeByUser()` 関数を追加：`suppressAutoReenabler = true` をセットしてから `disableComfortMode()` を呼ぶ
+- `startAutoReenableWatcher()`: MutationObserver と `loadedmetadata`/`canplay` イベントで新動画を検出
+- `disableComfortMode()` 末尾で `suppressAutoReenabler` が false の場合に 500ms 後にウォッチャーを起動
+
+**関連ファイル**:
+- `src/content.ts`: `disableComfortModeByUser()`, `startAutoReenableWatcher()`, `stopAutoReenableWatcher()` 追加、ユーザー操作箇所を `disableComfortModeByUser()` に変更
+
 ### Prime Video字幕表示の修正
 
 **問題**:

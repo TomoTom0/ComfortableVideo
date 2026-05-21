@@ -4,7 +4,7 @@
   "description": "Comfortable Video - 快適な動画視聴環境を提供するChrome拡張機能",
   "scripts": {
     "build:scss": "sass src/content.scss public/content.css --style=compressed",
-    "build:ts": "tsc",
+    "build:ts": "bun build src/content.ts --outfile=dist/content.js --target=browser && bun build src/background.ts --outfile=dist/background.js --target=browser && bun build src/options.ts --outfile=dist/options.js --target=browser",
     "build:copy": "rsync -a public/ dist/ || cp -r public/. dist/ || true",
     "build": "bun run build:scss && bun run build:ts && bun run build:copy",
     "watch": "tsc --watch",
