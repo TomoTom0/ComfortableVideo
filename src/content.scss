@@ -21,6 +21,17 @@ $white-transparent-60: rgba(255, 255, 255, 0.6);
 $white-transparent-90: rgba(255, 255, 255, 0.9);
 
 /* 快適モード時の基本スタイル */
+/* html要素へのスクロール防止（bodyにtransformがある場合のfixed要素クリップを回避） */
+html.comfort-mode-scroll-lock {
+  overflow: hidden !important;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+
+  &::-webkit-scrollbar {
+    display: none !important;
+  }
+}
+
 .comfort-mode-active {
   overflow: hidden !important;
   -ms-overflow-style: none !important;
@@ -29,6 +40,11 @@ $white-transparent-90: rgba(255, 255, 255, 0.9);
   &::-webkit-scrollbar {
     display: none !important;
   }
+}
+
+/* 全プラットフォーム共通：快適モードボタンのカーソル */
+.comfort-mode-button {
+  cursor: pointer !important;
 }
 
 /* YouTubeコントロールボタン */
@@ -130,10 +146,11 @@ $white-transparent-90: rgba(255, 255, 255, 0.9);
   align-items: center !important;
   justify-content: center !important;
   transition: all 0.2s ease !important;
+  transform: translateZ(0) !important;
 
   &:active {
     background: $white-transparent-30 !important;
-    transform: scale(0.95) !important;
+    transform: translateZ(0) scale(0.95) !important;
   }
 }
 
@@ -173,16 +190,24 @@ body.comfort-mode-active {
     pointer-events: auto !important;
   }
 
-  /* YouTube用 */
+  /* 各プラットフォームのプレイヤー: video-controls-enabled 時は auto */
   #movie_player,
-  #movie_player * {
+  #movie_player *,
+  #movie-player,
+  #movie-player *,
+  #player-wrapper,
+  #player-wrapper * {
     pointer-events: auto !important;
   }
 
-  /* コントロール無効時はYouTubeプレイヤー内も無効化 */
+  /* コントロール無効時はプレイヤー内も無効化（各プラットフォームのIDセレクターで高特異性を確保） */
   &:not(.video-controls-enabled) {
     #movie_player,
-    #movie_player * {
+    #movie_player *,
+    #movie-player,
+    #movie-player *,
+    #player-wrapper,
+    #player-wrapper * {
       pointer-events: none !important;
     }
   }
@@ -266,7 +291,7 @@ body.comfort-mode-active.video-controls-enabled {
   position: fixed !important;
   bottom: 60px !important;
   left: 50% !important;
-  transform: translateX(-50%) !important;
+  transform: translateX(-50%) translateZ(0) !important;
   background: $dark-bg !important;
   padding: 15px 20px !important;
   border-radius: 8px !important;
@@ -347,5 +372,65 @@ body.comfort-mode-active.video-controls-enabled {
       cursor: pointer !important;
       border: none !important;
     }
+  }
+}
+
+/* 音量コントロール */
+#comfort-volume-control {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+
+  #comfort-volume-slider-container {
+    position: absolute !important;
+    bottom: calc(100% + 8px) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    padding: 10px 8px !important;
+    background: $dark-bg !important;
+    border-radius: 6px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    input[type="range"] {
+      writing-mode: vertical-lr !important;
+      direction: rtl !important;
+      width: 6px !important;
+      height: 80px !important;
+      cursor: pointer !important;
+      -webkit-appearance: none !important;
+      appearance: none !important;
+      border-radius: 3px !important;
+      background: $white-transparent-30 !important;
+      outline: none !important;
+
+      &::-webkit-slider-thumb {
+        -webkit-appearance: none !important;
+        appearance: none !important;
+        width: 14px !important;
+        height: 14px !important;
+        border-radius: 50% !important;
+        background: white !important;
+        cursor: pointer !important;
+      }
+
+      &::-moz-range-thumb {
+        width: 14px !important;
+        height: 14px !important;
+        border-radius: 50% !important;
+        background: white !important;
+        cursor: pointer !important;
+        border: none !important;
+      }
+    }
+  }
+
+  &:hover #comfort-volume-slider-container {
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
 }

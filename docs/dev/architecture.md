@@ -82,6 +82,8 @@ chrome.contextMenus.create({
 - **動画最大化**: アスペクト比を維持したウィンドウサイズ内最大化
 - **z-index制御**: 他要素の前面表示 (`z-index: 2147483647`)
 - **ポインターイベント制御**: 条件付きマウスインタラクション無効化
+- **GPU コンポジット強制**: `translateZ(0)` でコントロール要素を GPU レイヤーに昇格させ、video 要素のハードウェアアクセラレーションによる z-index バイパスを回避
+- **連続再生対応（自動再有効化）**: エピソード終了等による自動解除後、次の動画が準備できたら快適モードを自動復帰
 
 #### スマートコントロールシステム
 ```typescript
@@ -130,6 +132,12 @@ style.textContent = `
 **Amazon Prime Video**:
 - `.atvwebplayersdk-hideabletopbuttons-container` へのボタン追加
 - `video` 要素と字幕オーバーレイ（`.atvwebplayersdk-captions-overlay`）を body に移動して z-index 競合を回避
+
+**東映特撮ファンクラブ (TTFC)**:
+- `.player-bottom-bar` または `#movie-player .vjs-control-bar` への快適モードボタン追加
+- URLパターン (`movie-stories` vs その他) に応じてプレーヤー要素 (`#player-wrapper` or `#movie-player`) を body に移動
+- `movie-stories` ページでは独自コントロール (`#player-controls`) を非表示にして拡張機能のカスタムコントロールを使用
+- エピソード連続再生対応: 自動解除後に `startAutoReenableWatcher()` で次の動画を待機して自動復帰
 
 **汎用サイト**:
 - `video` 要素を `document.body` に移動して親要素のスタッキングコンテキストから独立させる

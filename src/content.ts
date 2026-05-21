@@ -57,6 +57,15 @@ let isVideoControlsEnabled = false;
 let lastIsInVideoArea = false; // 前回の動画エリア状態を記録
 const HOVER_DETECTION_TIME = 2000; // 2秒間カーソルが下部にあると検出
 const CONTROLS_DISABLE_TIME = 3000; // 3秒間動画から離れるとコントロール無効化
+const CONTROLS_HIDE_DELAY = 500; // カスタムコントロールパネル外に出てから非表示になるまでの時間
+const AUTO_REENABLE_START_DELAY = 500; // 自動再有効化ウォッチャー開始までの遅延
+const AUTO_REENABLE_CANCEL_TIME = 30000; // 自動再有効化の最大待機時間
+
+// 自動再有効化（連続再生対応）
+let autoReenableComfortMode = false;
+let autoReenableObserver: MutationObserver | null = null;
+let suppressAutoReenabler = false; // ユーザー操作によるdisable時はtrueにしてauto-reenableを抑制
+let autoReenableTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 // ミュート・ミュート解除アイコンのSVG定数
 const MUTED_ICON_SVG = `
@@ -88,10 +97,15 @@ function updateYouTubeButtonState(): void {
 
 // YouTubeコントロールボタンを追加
 function addYouTubeControlButton(): void {
-  if (!isYouTube() || youtubeControlButton) return;
+  if (!isYouTube()) return;
 
   const rightControls = document.querySelector('.ytp-right-controls');
   if (!rightControls) return;
+
+  if (youtubeControlButton && (!youtubeControlButton.isConnected || !rightControls.contains(youtubeControlButton))) {
+    youtubeControlButton = null;
+  }
+  if (youtubeControlButton) return;
 
   // ボタンを作成
   youtubeControlButton = document.createElement('button');
@@ -113,7 +127,7 @@ function addYouTubeControlButton(): void {
     event.stopPropagation();
 
     if (isComfortModeActive) {
-      disableComfortMode();
+      disableComfortModeByUser();
     } else {
       enableComfortMode();
     }
@@ -141,10 +155,15 @@ function updatePrimeButtonState(): void {
 
 // Prime Videoコントロールボタンを追加
 function addPrimeControlButton(): void {
-  if (!isPrimeVideo() || primeControlButton) return;
+  if (!isPrimeVideo()) return;
 
   const topButtons = document.querySelector('div.atvwebplayersdk-hideabletopbuttons-container');
   if (!topButtons) return;
+
+  if (primeControlButton && (!primeControlButton.isConnected || !topButtons.contains(primeControlButton))) {
+    primeControlButton = null;
+  }
+  if (primeControlButton) return;
 
   // ボタンを作成
   primeControlButton = document.createElement('button');
@@ -166,7 +185,7 @@ function addPrimeControlButton(): void {
     event.stopPropagation();
 
     if (isComfortModeActive) {
-      disableComfortMode();
+      disableComfortModeByUser();
     } else {
       enableComfortMode();
     }
@@ -210,7 +229,7 @@ function updateTTFCButtonState(): void {
 
 // TTFCコントロールボタンを追加
 function addTTFCControlButton(): void {
-  if (!isTTFC() || ttfcControlButton) return;
+  if (!isTTFC()) return;
 
   let controlBar: Element | null;
   let fullscreenBtn: Element | null;
@@ -226,6 +245,12 @@ function addTTFCControlButton(): void {
   }
 
   if (!controlBar) return;
+
+  // 既存ボタンが現在のコントロールバー内にない場合は再追加（旧プレーヤー残留対策）
+  if (ttfcControlButton && (!ttfcControlButton.isConnected || !controlBar.contains(ttfcControlButton))) {
+    ttfcControlButton = null;
+  }
+  if (ttfcControlButton) return;
 
   ttfcControlButton = document.createElement('button');
   ttfcControlButton.className = 'comfort-mode-button ttfc-control';
@@ -245,7 +270,7 @@ function addTTFCControlButton(): void {
     event.stopPropagation();
 
     if (isComfortModeActive) {
-      disableComfortMode();
+      disableComfortModeByUser();
     } else {
       enableComfortMode();
     }
@@ -715,6 +740,8 @@ function applyZIndexControl(): void {
 
   // body要素にクラスを追加（スタイルはSCSSで管理）
   document.body.classList.add('comfort-mode-active');
+  // html要素にもスクロールロッククラスを追加（bodyにtransformがある場合のfixed要素クリップを回避）
+  document.documentElement.classList.add('comfort-mode-scroll-lock');
 }
 
 // z-index制御を解除する関数
@@ -729,6 +756,8 @@ function removeZIndexControl(): void {
   document.body.classList.remove('comfort-mode-active');
   document.body.classList.remove('video-area-hovered');
   document.body.classList.remove('video-controls-enabled');
+  // html要素からスクロールロッククラスを削除
+  document.documentElement.classList.remove('comfort-mode-scroll-lock');
 
   // z-index exempt クラスを全要素から削除
   document.querySelectorAll('.comfort-mode-exempt').forEach(el => {
@@ -832,40 +861,26 @@ function handleMouseMove(event: MouseEvent): void {
 
   // カスタムコントロールの自動非表示ロジック（監視中の場合のみ）
   if (isMonitoringMouseForControlsHide && customControls) {
-    // 動画エリア内かチェック
-    let isInVideoAreaNow = false;
-    videos.forEach(video => {
-      const rect = video.getBoundingClientRect();
-      if (event.clientX >= rect.left && event.clientX <= rect.right &&
-          event.clientY >= rect.top && event.clientY <= rect.bottom) {
-        isInVideoAreaNow = true;
+    // カスタムコントロールパネルの範囲内かチェック
+    const controlsRect = customControls.getBoundingClientRect();
+    const isInControlsArea = event.clientX >= controlsRect.left && event.clientX <= controlsRect.right &&
+                             event.clientY >= controlsRect.top && event.clientY <= controlsRect.bottom;
+
+    if (isInControlsArea) {
+      // コントロールパネル内にマウスがある場合、タイマーをキャンセル
+      if (controlsHideOnMouseLeaveTimer) {
+        clearTimeout(controlsHideOnMouseLeaveTimer);
+        controlsHideOnMouseLeaveTimer = null;
       }
-    });
-
-    // 既存のタイマーをクリア
-    if (controlsHideOnMouseLeaveTimer) {
-      clearTimeout(controlsHideOnMouseLeaveTimer);
-      controlsHideOnMouseLeaveTimer = null;
-    }
-
-    if (isInVideoAreaNow) {
-      // 動画エリア内にマウスがある場合、3秒後に非表示にするタイマーを再設定
+    } else if (!controlsHideOnMouseLeaveTimer) {
+      // コントロールパネル外に出た場合、まだタイマーが設定されていなければ非表示にする
       controlsHideOnMouseLeaveTimer = setTimeout(() => {
         if (customControls && currentActiveVideo && !currentActiveVideo.paused) {
           customControls.classList.add('hidden');
           isMonitoringMouseForControlsHide = false;
         }
         controlsHideOnMouseLeaveTimer = null;
-      }, 3000);
-    } else {
-      // 動画エリア外にマウスがある場合、0.5秒後に非表示
-      controlsHideOnMouseLeaveTimer = setTimeout(() => {
-        if (customControls && currentActiveVideo && !currentActiveVideo.paused) {
-          customControls.classList.add('hidden');
-          isMonitoringMouseForControlsHide = false;
-        }
-        controlsHideOnMouseLeaveTimer = null;
-      }, 500);
+      }, CONTROLS_HIDE_DELAY);
     }
   }
 
@@ -937,15 +952,13 @@ function handleMouseMove(event: MouseEvent): void {
         // 停止中は即座に有効化
         enableVideoControls();
       } else {
-        // 再生中は2秒待つ
-        if (cursorTimer) {
-          clearTimeout(cursorTimer);
+        // 再生中はタイマーが未設定の場合のみ開始（移動のたびにリセットしない）
+        if (!cursorTimer) {
+          cursorTimer = setTimeout(() => {
+            enableVideoControls();
+            cursorTimer = null;
+          }, HOVER_DETECTION_TIME);
         }
-
-        cursorTimer = setTimeout(() => {
-          enableVideoControls();
-          cursorTimer = null;
-        }, HOVER_DETECTION_TIME);
       }
     }
   } else {
@@ -995,6 +1008,14 @@ function handleClick(event: MouseEvent): void {
       if (!isVideoControlsEnabled) {
         enableVideoControls();
       }
+      // ポインターイベント復元後、プラットフォームのホバー検知を起動するために mousemove を発火
+      const syntheticMove = new MouseEvent('mousemove', {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        bubbles: true,
+        cancelable: true,
+      });
+      document.dispatchEvent(syntheticMove);
     } else {
       // 上部80%をクリックした場合、再生/一時停止をトグル
       if (video.paused) {
@@ -1078,7 +1099,7 @@ function showExitButton(): void {
   exitButton.innerHTML = '×'; // シンプルな×記号
   exitButton.title = chrome.i18n.getMessage('comfortModeExitTooltip'); // ツールチップで説明
 
-  exitButton.addEventListener('click', disableComfortMode);
+  exitButton.addEventListener('click', disableComfortModeByUser);
 
   document.body.appendChild(exitButton);
 }
@@ -1144,14 +1165,43 @@ function showCustomControls(): void {
     // play/pauseイベントで自動的にコントロールの表示が切り替わる
   });
 
-  // ミュートボタン
+  // 音量コントロール（ホバーで縦スライダー表示 + ミュートボタン）
+  const volumeControl = document.createElement('div');
+  volumeControl.id = 'comfort-volume-control';
+
+  const volumeSliderContainer = document.createElement('div');
+  volumeSliderContainer.id = 'comfort-volume-slider-container';
+
+  const volumeSlider = document.createElement('input');
+  volumeSlider.type = 'range';
+  volumeSlider.id = 'comfort-volume-slider';
+  volumeSlider.min = '0';
+  volumeSlider.max = '1';
+  volumeSlider.step = '0.05';
+  volumeSlider.value = String(video.muted ? 0 : video.volume);
+  volumeSlider.addEventListener('input', (e) => {
+    e.stopPropagation();
+    const val = parseFloat((e.target as HTMLInputElement).value);
+    video.volume = val;
+    video.muted = val === 0;
+  });
+  volumeSlider.addEventListener('click', (e) => e.stopPropagation());
+
+  volumeSliderContainer.appendChild(volumeSlider);
+
   const muteBtn = document.createElement('button');
   muteBtn.id = 'comfort-mute-btn';
   muteBtn.innerHTML = video.muted ? MUTED_ICON_SVG : UNMUTED_ICON_SVG;
   muteBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     video.muted = !video.muted;
+    if (!video.muted && video.volume === 0) {
+      video.volume = 0.5;
+    }
   });
+
+  volumeControl.appendChild(volumeSliderContainer);
+  volumeControl.appendChild(muteBtn);
 
   // 10秒送りボタン
   const forward10Btn = document.createElement('button');
@@ -1212,7 +1262,7 @@ function showCustomControls(): void {
   customControls.appendChild(playPauseBtn);
   customControls.appendChild(forward10Btn);
   customControls.appendChild(forward30Btn);
-  customControls.appendChild(muteBtn);
+  customControls.appendChild(volumeControl);
   customControls.appendChild(currentTimeDisplay);
   customControls.appendChild(seekBar);
   customControls.appendChild(durationDisplay);
@@ -1246,8 +1296,7 @@ function showCustomControls(): void {
       const isMouseInVideoArea = lastMouseX >= rect.left && lastMouseX <= rect.right &&
                                   lastMouseY >= rect.top && lastMouseY <= rect.bottom;
 
-      // マウスが動画エリア外なら0.5秒後、エリア内なら3秒後に非表示
-      const hideDelay = isMouseInVideoArea ? 3000 : 500;
+      const hideDelay = isMouseInVideoArea ? CONTROLS_DISABLE_TIME : CONTROLS_HIDE_DELAY;
       controlsHideOnMouseLeaveTimer = setTimeout(() => {
         if (customControls && currentActiveVideo && !currentActiveVideo.paused) {
           customControls.classList.add('hidden');
@@ -1300,6 +1349,9 @@ function showCustomControls(): void {
     if (muteBtn) {
       muteBtn.innerHTML = video.muted ? MUTED_ICON_SVG : UNMUTED_ICON_SVG;
     }
+    if (volumeSlider) {
+      volumeSlider.value = String(video.muted ? 0 : video.volume);
+    }
   });
 
   // メタデータ読み込みイベントでも更新（一部のサイトでdurationchangeが発火しない場合の対策）
@@ -1339,7 +1391,7 @@ function resetControlsAutoHide(): void {
         if (customControls) {
           customControls.classList.add('hidden');
         }
-      }, 3000);
+      }, CONTROLS_DISABLE_TIME);
     }
   }
 }
@@ -1424,8 +1476,93 @@ function stopPrimeCaptionsObserver(): void {
   }
 }
 
+// 自動再有効化の監視を停止
+function stopAutoReenableWatcher(): void {
+  if (autoReenableTimeoutId) {
+    clearTimeout(autoReenableTimeoutId);
+    autoReenableTimeoutId = null;
+  }
+  if (autoReenableObserver) {
+    autoReenableObserver.disconnect();
+    autoReenableObserver = null;
+  }
+  autoReenableComfortMode = false;
+}
+
+// 自動再有効化の監視を開始（エピソード遷移後に新しい動画を検出して再有効化）
+function startAutoReenableWatcher(): void {
+  stopAutoReenableWatcher();
+  autoReenableComfortMode = true;
+
+  const tryReenable = () => {
+    if (!autoReenableComfortMode || isComfortModeActive) return;
+    const videos = Array.from(document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>);
+    for (const video of videos) {
+      if (video.videoWidth > 0 && video.videoHeight > 0 && !video.ended) {
+        stopAutoReenableWatcher();
+        enableComfortMode();
+        return;
+      }
+    }
+  };
+
+  autoReenableObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const el = node as Element;
+            const videos = el.tagName === 'VIDEO'
+              ? [el as HTMLVideoElement]
+              : Array.from(el.querySelectorAll('video') as NodeListOf<HTMLVideoElement>);
+            videos.forEach(video => {
+              video.addEventListener('loadedmetadata', tryReenable, { once: true });
+              video.addEventListener('canplay', tryReenable, { once: true });
+            });
+          }
+        });
+      } else if (mutation.type === 'attributes' && mutation.target instanceof HTMLVideoElement) {
+        const video = mutation.target;
+        video.addEventListener('loadedmetadata', tryReenable, { once: true });
+        video.addEventListener('canplay', tryReenable, { once: true });
+      }
+    }
+    tryReenable();
+  });
+
+  autoReenableObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['src']
+  });
+
+  // 既存の動画要素にもイベントリスナーを追加
+  (document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>).forEach(video => {
+    video.addEventListener('loadedmetadata', tryReenable, { once: true });
+    video.addEventListener('canplay', tryReenable, { once: true });
+  });
+
+  // ウォッチャー開始時点で既に有効な動画があれば即座に再有効化
+  tryReenable();
+
+  // 30秒後に自動キャンセル
+  autoReenableTimeoutId = setTimeout(() => {
+    if (autoReenableComfortMode) {
+      stopAutoReenableWatcher();
+    }
+  }, AUTO_REENABLE_CANCEL_TIME);
+}
+
+// ユーザー操作による快適モード解除（自動再有効化を行わない）
+function disableComfortModeByUser(): void {
+  suppressAutoReenabler = true;
+  disableComfortMode();
+}
+
 // 快適モードを解除する関数
 function disableComfortMode(): void {
+  stopAutoReenableWatcher();
   if (!isComfortModeActive) {
     return;
   }
@@ -1561,6 +1698,12 @@ function disableComfortMode(): void {
 
   // TTFCボタンの状態を更新
   updateTTFCButtonState();
+
+  // ユーザー操作でない自動解除の場合、次のエピソードの動画を待って自動再有効化
+  if (!suppressAutoReenabler) {
+    setTimeout(startAutoReenableWatcher, AUTO_REENABLE_START_DELAY);
+  }
+  suppressAutoReenabler = false;
 }
 
 // バックグラウンドスクリプトからのメッセージを受信
@@ -1578,7 +1721,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // 既に快適モードがアクティブな場合は解除
       if (isComfortModeActive) {
         console.log('[Comfortable Video] Disabling comfort mode (video context)');
-        disableComfortMode();
+        disableComfortModeByUser();
       } else {
         console.log('[Comfortable Video] Enabling comfort mode (video context)');
         // video要素の特定と優先処理は現在の実装で十分対応済み
@@ -1588,7 +1731,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // 通常の切り替え処理
       if (isComfortModeActive) {
         console.log('[Comfortable Video] Disabling comfort mode');
-        disableComfortMode();
+        disableComfortModeByUser();
       } else {
         console.log('[Comfortable Video] Enabling comfort mode');
         enableComfortMode();
@@ -1608,7 +1751,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // ESCキーで快適モードを解除
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && isComfortModeActive) {
-    disableComfortMode();
+    disableComfortModeByUser();
   }
 });
 
@@ -1759,6 +1902,10 @@ function startVideoWatcher(): void {
 try {
   (window as any).__enableComfortMode = enableComfortMode;
   (window as any).__disableComfortMode = disableComfortMode;
+  (window as any).__disableComfortModeByUser = disableComfortModeByUser;
+  (window as any).__getIsComfortModeActive = () => isComfortModeActive;
+  (window as any).__getAutoReenableComfortMode = () => autoReenableComfortMode;
+  (window as any).__stopAutoReenableWatcher = stopAutoReenableWatcher;
 } catch (e) {
   // ignore
 }
