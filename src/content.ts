@@ -65,6 +65,7 @@ const AUTO_REENABLE_CANCEL_TIME = 30000; // 自動再有効化の最大待機時
 let autoReenableComfortMode = false;
 let autoReenableObserver: MutationObserver | null = null;
 let suppressAutoReenabler = false; // ユーザー操作によるdisable時はtrueにしてauto-reenableを抑制
+let autoReenableTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 // ミュート・ミュート解除アイコンのSVG定数
 const MUTED_ICON_SVG = `
@@ -872,7 +873,7 @@ function handleMouseMove(event: MouseEvent): void {
         controlsHideOnMouseLeaveTimer = null;
       }
     } else if (!controlsHideOnMouseLeaveTimer) {
-      // コントロールパネル外に出た場合、まだタイマーが設定されていなければ1秒後に非表示
+      // コントロールパネル外に出た場合、まだタイマーが設定されていなければ非表示にする
       controlsHideOnMouseLeaveTimer = setTimeout(() => {
         if (customControls && currentActiveVideo && !currentActiveVideo.paused) {
           customControls.classList.add('hidden');
@@ -1477,6 +1478,10 @@ function stopPrimeCaptionsObserver(): void {
 
 // 自動再有効化の監視を停止
 function stopAutoReenableWatcher(): void {
+  if (autoReenableTimeoutId) {
+    clearTimeout(autoReenableTimeoutId);
+    autoReenableTimeoutId = null;
+  }
   if (autoReenableObserver) {
     autoReenableObserver.disconnect();
     autoReenableObserver = null;
@@ -1516,6 +1521,10 @@ function startAutoReenableWatcher(): void {
             });
           }
         });
+      } else if (mutation.type === 'attributes' && mutation.target instanceof HTMLVideoElement) {
+        const video = mutation.target;
+        video.addEventListener('loadedmetadata', tryReenable, { once: true });
+        video.addEventListener('canplay', tryReenable, { once: true });
       }
     }
     tryReenable();
@@ -1538,7 +1547,7 @@ function startAutoReenableWatcher(): void {
   tryReenable();
 
   // 30秒後に自動キャンセル
-  setTimeout(() => {
+  autoReenableTimeoutId = setTimeout(() => {
     if (autoReenableComfortMode) {
       stopAutoReenableWatcher();
     }
@@ -1553,6 +1562,7 @@ function disableComfortModeByUser(): void {
 
 // 快適モードを解除する関数
 function disableComfortMode(): void {
+  stopAutoReenableWatcher();
   if (!isComfortModeActive) {
     return;
   }
