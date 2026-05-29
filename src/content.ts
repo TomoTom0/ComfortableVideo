@@ -1548,22 +1548,50 @@ function cancelGracePeriod(): void {
 // Grace periodを開始（動画終了後、次の動画再生を待つ）
 function startGracePeriod(): void {
   cancelGracePeriod();
+  stopVideoWatcher();
 
-  const checkForNewVideo = () => {
+  const checkForNewVideo = (video: HTMLVideoElement): boolean => {
+    if (!video.ended && video.videoWidth > 0) {
+      console.log('[Comfortable Video] 次の動画の再生を検出、快適モードを維持します');
+      currentActiveVideo = video;
+      maximizeVideo(video);
+      video.classList.add('comfort-mode-video');
+      startVideoWatcher();
+      cancelGracePeriod();
+      return true;
+    }
+    return false;
+  };
+
+  const checkAllVideos = () => {
     const videos = document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>;
     for (const video of videos) {
-      if (!video.ended && video.videoWidth > 0) {
-        console.log('[Comfortable Video] 次の動画の再生を検出、快適モードを維持します');
-        cancelGracePeriod();
+      if (checkForNewVideo(video)) {
         return;
       }
     }
   };
 
-  // 新しいvideo要素・src属性変更を監視
-  gracePeriodObserver = new MutationObserver(() => {
-    checkForNewVideo();
+  gracePeriodObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const el = node as Element;
+            const videos = el.tagName === 'VIDEO'
+              ? [el as HTMLVideoElement]
+              : Array.from(el.querySelectorAll('video') as NodeListOf<HTMLVideoElement>);
+            videos.forEach((video) => {
+              video.addEventListener('playing', () => checkForNewVideo(video), { once: true });
+              video.addEventListener('loadedmetadata', () => checkForNewVideo(video), { once: true });
+            });
+          }
+        });
+      }
+    }
+    checkAllVideos();
   });
+
   gracePeriodObserver.observe(document.body, {
     childList: true,
     subtree: true,
@@ -1571,16 +1599,13 @@ function startGracePeriod(): void {
     attributeFilter: ['src']
   });
 
-  // 既存のvideo要素にイベントリスナーを追加
   (document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>).forEach(video => {
-    video.addEventListener('playing', checkForNewVideo, { once: true });
-    video.addEventListener('loadedmetadata', checkForNewVideo, { once: true });
+    video.addEventListener('playing', () => checkForNewVideo(video), { once: true });
+    video.addEventListener('loadedmetadata', () => checkForNewVideo(video), { once: true });
   });
 
-  // 即座にチェック（既に新しい動画が再生中の場合）
-  checkForNewVideo();
+  checkAllVideos();
 
-  // タイムアウトで快適モード解除
   gracePeriodTimerId = setTimeout(() => {
     console.log('[Comfortable Video] Grace period終了、快適モードを解除します');
     cancelGracePeriod();
