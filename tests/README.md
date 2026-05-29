@@ -3,8 +3,8 @@
 ## 実行方法
 
 ```bash
-bun run test          # 全テストを一度実行
-bun run test:watch    # ウォッチモード
+pnpm run test          # 全テストを一度実行
+pnpm run test:watch    # ウォッチモード
 ```
 
 ## ディレクトリ構成
@@ -16,7 +16,7 @@ tests/
     ├── utils/
     │   └── site-detection.test.ts    # サイト判定関数のユニットテスト
     └── content/
-        └── auto-reenable.test.ts     # 快適モード自動再有効化のテスト
+        └── auto-reenable.test.ts     # grace period（連続再生時の快適モード維持）のテスト
 ```
 
 ## テスト環境
@@ -31,7 +31,7 @@ tests/
 | ソースファイル | テストファイル | 更新タイミング |
 |---|---|---|
 | `src/utils/site-detection.ts` | `tests/unit/utils/site-detection.test.ts` | 判定関数の追加・変更時 |
-| `src/content.ts`（自動再有効化） | `tests/unit/content/auto-reenable.test.ts` | `disableComfortMode` / `disableComfortModeByUser` / `startAutoReenableWatcher` の変更時 |
+| `src/content.ts`（grace period） | `tests/unit/content/auto-reenable.test.ts` | `disableComfortMode` / `checkVideoEnded` / `startGracePeriod` / `cancelGracePeriod` の変更時 |
 
 ## テスト更新が必要なタイミング
 
@@ -39,7 +39,7 @@ tests/
 - 新しいサイトに対応したとき（`isTTFC` 等の判定関数追加）
 - 既存判定ロジックの修正時
 - `disableComfortMode` / `disableComfortModeByUser` の動作を変更したとき
-- 自動再有効化ロジック（`startAutoReenableWatcher`）を変更したとき
+- grace periodロジック（`startGracePeriod` / `cancelGracePeriod`）を変更したとき
 
 ## 命名規則
 
@@ -50,8 +50,8 @@ tests/
 ## 重要なテスト対象（必須）
 
 - `isYouTube()` / `isTTFC()` / `isTTFCMovieStories()` / `isPrimeVideo()` — サイト判定の誤検出・見落としはユーザー影響が大きいため必ずテストする
-- `disableComfortModeByUser()` — ユーザー操作時に自動再有効化が発生しないことを保証する
-- `startAutoReenableWatcher()` — 自動解除後に新動画で正しく再有効化されることを保証する
+- `disableComfortModeByUser()` — ユーザー操作時に即座に解除されることを保証する
+- grace period — 動画終了後5秒以内に次の動画が再生されれば快適モードが維持され、タイムアウトすれば解除されることを保証する
 
 ## content.ts テストの注意事項
 
@@ -60,6 +60,6 @@ tests/
 - テストは `happy-dom` 環境で実行される
 - `chrome` グローバルは `tests/setup.ts` でモックされる
 - `content.ts` はモジュールとしてキャッシュされるため、テスト間で状態が共有される
-  - `beforeEach` で `__disableComfortModeByUser()` と `__stopAutoReenableWatcher()` を呼んで状態をリセットする
+  - `beforeEach` で `__disableComfortModeByUser()` を呼んで状態をリセットする
 - `video.videoWidth` / `video.videoHeight` は `Object.defineProperty` でモック値を設定する
 - `vi.useFakeTimers()` で `setTimeout` をコントロールし、`await Promise.resolve()` でMutationObserver のマイクロタスクを処理する

@@ -21,7 +21,6 @@ function cleanupComfortMode(): void {
   if (hook<() => boolean>('__getIsComfortModeActive')()) {
     hook<() => void>('__disableComfortModeByUser')();
   }
-  hook<() => void>('__stopAutoReenableWatcher')();
   document.getElementById('comfort-mode-exit-button')?.remove();
   document.getElementById('comfort-mode-custom-controls')?.remove();
   document.getElementById('comfort-mode-overlay')?.remove();
@@ -30,7 +29,7 @@ function cleanupComfortMode(): void {
   document.querySelectorAll('video').forEach(v => v.remove());
 }
 
-describe('自動再有効化（連続再生対応）', () => {
+describe('Grace period（連続再生時に快適モードを維持）', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     cleanupComfortMode();
@@ -41,74 +40,67 @@ describe('自動再有効化（連続再生対応）', () => {
     vi.useRealTimers();
   });
 
-  describe('disableComfortModeByUser', () => {
-    it('ユーザー操作による解除では自動再有効化が発生しない', () => {
-      createValidVideo();
-      hook<() => void>('__enableComfortMode')();
-      expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(true);
-
-      hook<() => void>('__disableComfortModeByUser')();
-      vi.advanceTimersByTime(1000);
-
-      expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(false);
-      expect(hook<() => boolean>('__getAutoReenableComfortMode')()).toBe(false);
-    });
-  });
-
-  describe('disableComfortMode（自動解除）', () => {
-    it('自動解除後は自動再有効化の待機状態になる', () => {
-      const video = createValidVideo();
-      hook<() => void>('__enableComfortMode')();
-      expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(true);
-
-      // エピソード終了を模擬: ended にしてから DOM から削除
-      Object.defineProperty(video, 'ended', { value: true, configurable: true });
-      video.remove();
-
-      hook<() => void>('__disableComfortMode')();
-      vi.advanceTimersByTime(600);
-
-      expect(hook<() => boolean>('__getAutoReenableComfortMode')()).toBe(true);
-    });
-
-    it('自動解除後に有効な新動画が追加されると快適モードが再有効化される', async () => {
+  describe('動画終了時のgrace period', () => {
+    it('動画終了後5秒以内に次の動画が再生されれば快適モードは維持される', async () => {
       const video1 = createValidVideo();
-      // ended な動画として設定（再有効化の対象から除外される）
+      hook<() => void>('__enableComfortMode')();
+      expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(true);
+
+      // 動画終了を模擬（comfort-mode-videoクラスは残したままendedにする）
       Object.defineProperty(video1, 'ended', { value: true, configurable: true });
 
-      hook<() => void>('__enableComfortMode')();
-      hook<() => void>('__disableComfortMode')();
-      video1.remove();
+      // endedイベントを発火
+      video1.dispatchEvent(new Event('ended'));
 
-      // ウォッチャーが起動するまで待機（500ms の setTimeout）
-      vi.advanceTimersByTime(600);
-      expect(hook<() => boolean>('__getAutoReenableComfortMode')()).toBe(true);
+      // grace period中は快適モードが維持
+      vi.advanceTimersByTime(2000);
+      expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(true);
 
-      // 新しい有効な動画を DOM に追加
+      // 次の動画が開始（新しいvideo要素を追加）
       createValidVideo();
 
-      // MutationObserver のコールバック（マイクロタスク）を処理
+      // MutationObserverのコールバックを処理
       await Promise.resolve();
 
+      // 快適モードは維持される
+      expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(true);
+
+      // 5秒経過しても解除されない
+      vi.advanceTimersByTime(5000);
       expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(true);
     });
 
-    it('30秒経過後は自動再有効化がキャンセルされる', () => {
+    it('動画終了後5秒経過しても次の動画が再生されなければ快適モードは解除される', () => {
       const video = createValidVideo();
       hook<() => void>('__enableComfortMode')();
+      expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(true);
 
-      // エピソード終了を模擬: ended にしてから DOM から削除
+      // 動画終了を模擬
       Object.defineProperty(video, 'ended', { value: true, configurable: true });
-      video.remove();
 
-      hook<() => void>('__disableComfortMode')();
+      video.dispatchEvent(new Event('ended'));
 
-      vi.advanceTimersByTime(600);
-      expect(hook<() => boolean>('__getAutoReenableComfortMode')()).toBe(true);
+      // grace period中は快適モードが維持
+      vi.advanceTimersByTime(3000);
+      expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(true);
 
-      // 30秒タイムアウト
-      vi.advanceTimersByTime(30000);
-      expect(hook<() => boolean>('__getAutoReenableComfortMode')()).toBe(false);
+      // 5秒経過で解除
+      vi.advanceTimersByTime(2500);
+      expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(false);
+    });
+
+    it('ユーザー操作による解除はgrace periodに関係なく即座に実行される', () => {
+      const video = createValidVideo();
+      hook<() => void>('__enableComfortMode')();
+      expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(true);
+
+      // 動画終了でgrace period開始
+      Object.defineProperty(video, 'ended', { value: true, configurable: true });
+      video.dispatchEvent(new Event('ended'));
+
+      // ユーザーが手動で解除
+      hook<() => void>('__disableComfortModeByUser')();
+      expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(false);
     });
   });
 });

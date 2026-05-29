@@ -2,21 +2,21 @@
 
 ## パッケージマネージャー
 
-このプロジェクトは **Bun** を使用しています。
+このプロジェクトは **pnpm** を使用しています。
 
-- パッケージのインストール: `bun install`
-- ビルド: `bun run build`
-- クリーンビルド: `bun run rebuild`
-- デプロイ: `bun run deploy`
+- パッケージのインストール: `pnpm install`
+- ビルド: `pnpm run build`
+- クリーンビルド: `pnpm run rebuild`
+- デプロイ: `pnpm run deploy`
 
-**重要**: `npm` や `yarn` を使用しないでください。すべての依存関係管理とスクリプト実行は `bun` で行います。
+**重要**: `npm` や `yarn`、`bun` を使用しないでください。すべての依存関係管理とスクリプト実行は `pnpm` で行います。
 
 ## ビルドとデプロイ
 
-- ソースコード更新後は必ず `bun run build` を実行してください
-- ビルド後は必ず `bun run deploy` を実行してください
-- 本番環境へのデプロイ前には `bun run rebuild` でクリーンビルドを推奨します
-- `scripts/` ディレクトリのシェルスクリプトも `bun` を使用するように設定されています
+- ソースコード更新後は必ず `pnpm run build` を実行してください
+- ビルド後は必ず `pnpm run deploy` を実行してください
+- 本番環境へのデプロイ前には `pnpm run rebuild` でクリーンビルドを推奨します
+- バンドラーに **esbuild** を使用しています（`build:ts` スクリプト）
 
 ## スタイル管理
 

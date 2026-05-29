@@ -85,21 +85,21 @@
 - 東映特撮ファンクラブ（TTFC）等でエピソードを連続再生する際、エピソードの切り替えタイミングで快適モードが自動解除され、次のエピソードで手動で再有効化が必要になる
 
 **原因**:
-- エピソード終了時に `checkVideoEnded()` が `disableComfortMode()` を呼び出す（正常な動作）
-- ただし次のエピソードが始まっても快適モードは自動復帰しなかった
+- エピソード終了時に `checkVideoEnded()` が即座に `disableComfortMode()` を呼び出していた
+- その後のauto-reenable watcher（MutationObserver + イベントリスナー + polling）で再有効化を試みていたが、タイミングの問題で確実に動作していなかった
 
 **修正内容**:
-- ユーザー操作（×ボタン、ESCキー、コントロールボタン）による解除と、自動解除（動画終了・DOM削除）を区別
-- 自動解除後は `startAutoReenableWatcher()` で新しい動画を待機し、準備ができ次第自動的に快適モードを再有効化
-- 30秒以内に次の動画が見つからない場合はタイムアウトして自動再有効化をキャンセル
+- 「即座に解除して再有効化」から「grace period方式」に再設計
+- 動画終了後5秒間の猶予期間を設け、その間に次の動画の再生が検出されれば快適モードを維持
+- 猶予期間内に次の動画が始まらなければ快適モードを解除
 
 **技術的詳細**:
-- `disableComfortModeByUser()` 関数を追加：`suppressAutoReenabler = true` をセットしてから `disableComfortMode()` を呼ぶ
-- `startAutoReenableWatcher()`: MutationObserver と `loadedmetadata`/`canplay` イベントで新動画を検出
-- `disableComfortMode()` 末尾で `suppressAutoReenabler` が false の場合に 500ms 後にウォッチャーを起動
+- `startGracePeriod()`: MutationObserver + `playing`/`loadedmetadata` イベントで新動画を検出、5秒タイマーでタイムアウト解除
+- `cancelGracePeriod()`: タイマー・Observerのクリーンアップ
+- 従来のauto-reenable機構（`startAutoReenableWatcher`, `stopAutoReenableWatcher`, `suppressAutoReenabler`等）は削除
 
 **関連ファイル**:
-- `src/content.ts`: `disableComfortModeByUser()`, `startAutoReenableWatcher()`, `stopAutoReenableWatcher()` 追加、ユーザー操作箇所を `disableComfortModeByUser()` に変更
+- `src/content.ts`: `startGracePeriod()`, `cancelGracePeriod()` 追加、auto-reenable関連コード削除、`checkVideoEnded()` をgrace period開始に変更
 
 ### Prime Video字幕表示の修正
 

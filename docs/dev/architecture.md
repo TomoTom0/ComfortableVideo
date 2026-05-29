@@ -137,7 +137,7 @@ style.textContent = `
 - `.player-bottom-bar` または `#movie-player .vjs-control-bar` への快適モードボタン追加
 - URLパターン (`movie-stories` vs その他) に応じてプレーヤー要素 (`#player-wrapper` or `#movie-player`) を body に移動
 - `movie-stories` ページでは独自コントロール (`#player-controls`) を非表示にして拡張機能のカスタムコントロールを使用
-- エピソード連続再生対応: 自動解除後に `startAutoReenableWatcher()` で次の動画を待機して自動復帰
+- エピソード連続再生対応: grace period方式（動画終了後5秒間次の動画を待機、検出時は快適モード維持）
 
 **汎用サイト**:
 - `video` 要素を `document.body` に移動して親要素のスタッキングコンテキストから独立させる

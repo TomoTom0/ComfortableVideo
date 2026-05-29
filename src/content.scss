@@ -190,26 +190,35 @@ body.comfort-mode-active {
     pointer-events: auto !important;
   }
 
-  /* 各プラットフォームのプレイヤー: video-controls-enabled 時は auto */
-  #movie_player,
-  #movie_player *,
-  #movie-player,
-  #movie-player *,
-  #player-wrapper,
-  #player-wrapper * {
+  /* 各プラットフォームのプレイヤー内の動画要素のみpointer-eventsを有効化 */
+  #movie_player video,
+  #movie-player video,
+  #player-wrapper video {
     pointer-events: auto !important;
   }
 
-  /* コントロール無効時はプレイヤー内も無効化（各プラットフォームのIDセレクターで高特異性を確保） */
-  &:not(.video-controls-enabled) {
-    #movie_player,
-    #movie_player *,
-    #movie-player,
-    #movie-player *,
-    #player-wrapper,
-    #player-wrapper * {
-      pointer-events: none !important;
-    }
+  /* ネイティブコントロールを完全に非表示 */
+  /* YouTube */
+  .ytp-chrome-bottom,
+  .ytp-gradient-bottom,
+  .ytp-player-content {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
+  /* TTFC (Video.js) */
+  #movie-player .vjs-control-bar,
+  #movie-player .vjs-text-track-display,
+  #movie-player .vjs-loading-spinner,
+  #movie-player .vjs-big-play-button {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
+  /* TTFC (movie-stories) */
+  .player-bottom-bar {
+    display: none !important;
+    pointer-events: none !important;
   }
 
   /* 動画要素自体は常にpointer-eventsを有効に */
@@ -220,6 +229,7 @@ body.comfort-mode-active {
   /* TTFC movie-stories の独自コントロールを非表示 */
   #player-controls {
     display: none !important;
+    pointer-events: none !important;
   }
 }
 
@@ -264,7 +274,8 @@ body.comfort-mode-active {
   }
 
   /* Prime Video字幕を前面に表示 */
-  .atvwebplayersdk-captions-overlay {
+  .atvwebplayersdk-captions-overlay,
+  [class*="captions-overlay"] {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
