@@ -58,14 +58,11 @@ let lastIsInVideoArea = false; // 前回の動画エリア状態を記録
 const HOVER_DETECTION_TIME = 2000; // 2秒間カーソルが下部にあると検出
 const CONTROLS_DISABLE_TIME = 3000; // 3秒間動画から離れるとコントロール無効化
 const CONTROLS_HIDE_DELAY = 500; // カスタムコントロールパネル外に出てから非表示になるまでの時間
-const AUTO_REENABLE_START_DELAY = 500; // 自動再有効化ウォッチャー開始までの遅延
-const AUTO_REENABLE_CANCEL_TIME = 30000; // 自動再有効化の最大待機時間
+const VIDEO_END_GRACE_PERIOD = 5000; // 動画終了後、次の動画再生を待つ猶予時間
 
-// 自動再有効化（連続再生対応）
-let autoReenableComfortMode = false;
-let autoReenableObserver: MutationObserver | null = null;
-let suppressAutoReenabler = false; // ユーザー操作によるdisable時はtrueにしてauto-reenableを抑制
-let autoReenableTimeoutId: ReturnType<typeof setTimeout> | null = null;
+// Grace period（連続再生時に快適モードを維持する仕組み）
+let gracePeriodTimerId: ReturnType<typeof setTimeout> | null = null;
+let gracePeriodObserver: MutationObserver | null = null;
 
 // ミュート・ミュート解除アイコンのSVG定数
 const MUTED_ICON_SVG = `
@@ -81,6 +78,35 @@ const UNMUTED_ICON_SVG = `
 `;
 
 import { isYouTube, isTTFC, isTTFCMovieStories, isPrimeVideo } from './utils/site-detection';
+
+// Prime Videoプレーヤーの上部ボタンコンテナを検索するセレクタ（フォールバック付き）
+const PRIME_TOP_BUTTONS_SELECTORS = [
+  'div.atvwebplayersdk-hideabletopbuttons-container',  // 従来のセレクタ
+  'div[class*="hideabletopbuttons"]',                   // 部分一致フォールバック
+  'div[class*="topbuttons-container"]',                 // 部分一致フォールバック
+];
+
+// Prime Videoの上部ボタンコンテナを検索
+function findPrimeTopButtonsContainer(): Element | null {
+  for (const selector of PRIME_TOP_BUTTONS_SELECTORS) {
+    const element = document.querySelector(selector);
+    if (element) {
+      console.log('[Comfortable Video] Prime Video top buttons container found with selector:', selector);
+      return element;
+    }
+  }
+  return null;
+}
+
+// 要素またはその子孫にPrime Videoの上部ボタンコンテナが含まれるか確認
+function containsPrimeTopButtonsContainer(element: Element): boolean {
+  for (const selector of PRIME_TOP_BUTTONS_SELECTORS) {
+    if (element.matches(selector) || element.querySelector(selector)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 // YouTubeボタンの状態を更新
 function updateYouTubeButtonState(): void {
@@ -157,8 +183,11 @@ function updatePrimeButtonState(): void {
 function addPrimeControlButton(): void {
   if (!isPrimeVideo()) return;
 
-  const topButtons = document.querySelector('div.atvwebplayersdk-hideabletopbuttons-container');
-  if (!topButtons) return;
+  const topButtons = findPrimeTopButtonsContainer();
+  if (!topButtons) {
+    console.log('[Comfortable Video] Prime Video top buttons container not found. Selectors tried:', PRIME_TOP_BUTTONS_SELECTORS);
+    return;
+  }
 
   if (primeControlButton && (!primeControlButton.isConnected || !topButtons.contains(primeControlButton))) {
     primeControlButton = null;
@@ -330,12 +359,27 @@ function setupPrimeObserver(): void {
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       if (mutation.type === 'childList') {
-        // .atvwebplayersdk-hideabletopbuttons-containerが追加されたかチェック
+        // 上部ボタンコンテナが追加されたかチェック
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const element = node as Element;
-            if (element.querySelector('div.atvwebplayersdk-hideabletopbuttons-container') ||
-                element.classList.contains('atvwebplayersdk-hideabletopbuttons-container')) {
+            if (containsPrimeTopButtonsContainer(element)) {
+              setTimeout(addPrimeControlButton, 100);
+            }
+          }
+        });
+
+        // 挿入したボタンがAmazon側の再レンダリングで削除されたかチェック
+        mutation.removedNodes.forEach((node) => {
+          if (primeControlButton && node === primeControlButton) {
+            console.log('[Comfortable Video] Prime Video control button was removed, re-adding...');
+            primeControlButton = null;
+            setTimeout(addPrimeControlButton, 100);
+          } else if (node.nodeType === Node.ELEMENT_NODE && primeControlButton) {
+            const element = node as Element;
+            if (element.contains(primeControlButton)) {
+              console.log('[Comfortable Video] Prime Video control button container was removed, re-adding...');
+              primeControlButton = null;
               setTimeout(addPrimeControlButton, 100);
             }
           }
@@ -349,8 +393,9 @@ function setupPrimeObserver(): void {
     subtree: true
   });
 
-  // 初回チェック
+  // 初回チェック（複数回試行してタイミング問題に対応）
   setTimeout(addPrimeControlButton, 1000);
+  setTimeout(addPrimeControlButton, 3000);
 }
 
 // YouTube用のMutationObserverを設定
@@ -662,7 +707,10 @@ function maximizeVideo(video: HTMLVideoElement): void {
     }
   } else if (isTTFC()) {
     const playerId = isTTFCMovieStories() ? 'player-wrapper' : 'movie-player';
-    const player = document.getElementById(playerId);
+    let player: HTMLElement | null = video.closest('#' + playerId) as HTMLElement | null;
+    if (!player) {
+      player = document.getElementById(playerId);
+    }
     if (player && player.parentElement) {
       const computedStyle = window.getComputedStyle(player);
       originalVideoStyles.set(player, {
@@ -707,7 +755,7 @@ function maximizeVideo(video: HTMLVideoElement): void {
     console.log('[Comfortable Video] Video moved to body');
 
     // Prime Video字幕オーバーレイも一緒にbodyに移動
-    const captionsOverlay = document.querySelector('.atvwebplayersdk-captions-overlay') as HTMLElement;
+    const captionsOverlay = findPrimeCaptionsOverlay();
     if (captionsOverlay && captionsOverlay.parentElement) {
       originalCaptionsParent = {
         parent: captionsOverlay.parentElement,
@@ -1062,13 +1110,10 @@ function checkVideoEnded(): void {
     }
   });
 
-  // すべての動画が終了した場合、快適モードを解除
+  // すべての動画が終了した場合、grace periodを開始
   if (allEnded) {
-    console.log('[Comfortable Video] 動画が終了したため、快適モードを自動解除します');
-    // 少し遅延させて、YouTube側のスタイル変更前に解除
-    setTimeout(() => {
-      disableComfortMode();
-    }, 50);
+    console.log('[Comfortable Video] 動画が終了しました。grace periodを開始します');
+    startGracePeriod();
   }
 }
 
@@ -1413,6 +1458,19 @@ function hideCustomControls(): void {
   isMonitoringMouseForControlsHide = false;
 }
 
+// Prime Videoの字幕オーバーレイを検索するセレクタ（フォールバック付き）
+function findPrimeCaptionsOverlay(): HTMLElement | null {
+  const selectors = [
+    '.atvwebplayersdk-captions-overlay',
+    '[class*="captions-overlay"]',
+  ];
+  for (const selector of selectors) {
+    const element = document.querySelector(selector) as HTMLElement;
+    if (element) return element;
+  }
+  return null;
+}
+
 // Prime Video字幕監視を開始
 function startPrimeCaptionsObserver(): void {
   if (!isPrimeVideo() || primeCaptionsObserver) {
@@ -1420,7 +1478,7 @@ function startPrimeCaptionsObserver(): void {
   }
 
   const moveCaptionsToBody = () => {
-    const overlay = document.querySelector('.atvwebplayersdk-captions-overlay') as HTMLElement;
+    const overlay = findPrimeCaptionsOverlay();
 
     // 字幕要素が存在し、かつまだbodyの子要素でない場合
     if (overlay && overlay.parentElement && overlay.parentElement.tagName !== 'BODY') {
@@ -1451,7 +1509,6 @@ function startPrimeCaptionsObserver(): void {
   });
 
   // Prime Videoのプレイヤーコンテナを特定（パフォーマンス最適化）
-  // 一般的なセレクタを順に試し、見つからない場合はdocument.bodyにフォールバック
   const primePlayerContainer = document.querySelector('.webPlayerContainer') ||
                                document.querySelector('[data-testid="video-player"]') ||
                                document.querySelector('.dv-player-fullscreen') ||
@@ -1476,93 +1533,94 @@ function stopPrimeCaptionsObserver(): void {
   }
 }
 
-// 自動再有効化の監視を停止
-function stopAutoReenableWatcher(): void {
-  if (autoReenableTimeoutId) {
-    clearTimeout(autoReenableTimeoutId);
-    autoReenableTimeoutId = null;
+// Grace periodをキャンセル
+function cancelGracePeriod(): void {
+  if (gracePeriodTimerId) {
+    clearTimeout(gracePeriodTimerId);
+    gracePeriodTimerId = null;
   }
-  if (autoReenableObserver) {
-    autoReenableObserver.disconnect();
-    autoReenableObserver = null;
+  if (gracePeriodObserver) {
+    gracePeriodObserver.disconnect();
+    gracePeriodObserver = null;
   }
-  autoReenableComfortMode = false;
 }
 
-// 自動再有効化の監視を開始（エピソード遷移後に新しい動画を検出して再有効化）
-function startAutoReenableWatcher(): void {
-  stopAutoReenableWatcher();
-  autoReenableComfortMode = true;
+// Grace periodを開始（動画終了後、次の動画再生を待つ）
+function startGracePeriod(): void {
+  cancelGracePeriod();
+  stopVideoWatcher();
 
-  const tryReenable = () => {
-    if (!autoReenableComfortMode || isComfortModeActive) return;
-    const videos = Array.from(document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>);
+  const checkForNewVideo = (video: HTMLVideoElement): boolean => {
+    if (!video.ended && video.videoWidth > 0) {
+      console.log('[Comfortable Video] 次の動画の再生を検出、快適モードを維持します');
+      currentActiveVideo = video;
+      maximizeVideo(video);
+      video.classList.add('comfort-mode-video');
+      startVideoWatcher();
+      cancelGracePeriod();
+      return true;
+    }
+    return false;
+  };
+
+  const checkAllVideos = () => {
+    const videos = document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>;
     for (const video of videos) {
-      if (video.videoWidth > 0 && video.videoHeight > 0 && !video.ended) {
-        stopAutoReenableWatcher();
-        enableComfortMode();
+      if (checkForNewVideo(video)) {
         return;
       }
     }
   };
 
-  autoReenableObserver = new MutationObserver((mutations) => {
+  gracePeriodObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       if (mutation.type === 'childList') {
-        mutation.addedNodes.forEach(node => {
+        mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const el = node as Element;
             const videos = el.tagName === 'VIDEO'
               ? [el as HTMLVideoElement]
               : Array.from(el.querySelectorAll('video') as NodeListOf<HTMLVideoElement>);
-            videos.forEach(video => {
-              video.addEventListener('loadedmetadata', tryReenable, { once: true });
-              video.addEventListener('canplay', tryReenable, { once: true });
+            videos.forEach((video) => {
+              video.addEventListener('playing', () => checkForNewVideo(video), { once: true });
+              video.addEventListener('loadedmetadata', () => checkForNewVideo(video), { once: true });
             });
           }
         });
-      } else if (mutation.type === 'attributes' && mutation.target instanceof HTMLVideoElement) {
-        const video = mutation.target;
-        video.addEventListener('loadedmetadata', tryReenable, { once: true });
-        video.addEventListener('canplay', tryReenable, { once: true });
       }
     }
-    tryReenable();
+    checkAllVideos();
   });
 
-  autoReenableObserver.observe(document.body, {
+  gracePeriodObserver.observe(document.body, {
     childList: true,
     subtree: true,
     attributes: true,
     attributeFilter: ['src']
   });
 
-  // 既存の動画要素にもイベントリスナーを追加
   (document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>).forEach(video => {
-    video.addEventListener('loadedmetadata', tryReenable, { once: true });
-    video.addEventListener('canplay', tryReenable, { once: true });
+    video.addEventListener('playing', () => checkForNewVideo(video), { once: true });
+    video.addEventListener('loadedmetadata', () => checkForNewVideo(video), { once: true });
   });
 
-  // ウォッチャー開始時点で既に有効な動画があれば即座に再有効化
-  tryReenable();
+  checkAllVideos();
 
-  // 30秒後に自動キャンセル
-  autoReenableTimeoutId = setTimeout(() => {
-    if (autoReenableComfortMode) {
-      stopAutoReenableWatcher();
-    }
-  }, AUTO_REENABLE_CANCEL_TIME);
+  gracePeriodTimerId = setTimeout(() => {
+    console.log('[Comfortable Video] Grace period終了、快適モードを解除します');
+    cancelGracePeriod();
+    disableComfortMode();
+  }, VIDEO_END_GRACE_PERIOD);
 }
 
-// ユーザー操作による快適モード解除（自動再有効化を行わない）
+// ユーザー操作による快適モード解除
 function disableComfortModeByUser(): void {
-  suppressAutoReenabler = true;
   disableComfortMode();
 }
 
 // 快適モードを解除する関数
 function disableComfortMode(): void {
-  stopAutoReenableWatcher();
+  cancelGracePeriod();
   if (!isComfortModeActive) {
     return;
   }
@@ -1621,7 +1679,8 @@ function disableComfortMode(): void {
             originalVideoParent.parent.appendChild(player);
           }
         } else {
-          console.warn('[Comfortable Video] Original parent element not found. Cannot restore TTFC player position.');
+          console.warn('[Comfortable Video] Original parent element not found. Removing orphaned player from body.');
+          player.remove();
         }
         originalVideoParent = null;
       }
@@ -1645,7 +1704,7 @@ function disableComfortMode(): void {
 
     // Prime Video字幕オーバーレイも元の位置に戻す
     if (originalCaptionsParent) {
-      const captionsOverlay = document.querySelector('.atvwebplayersdk-captions-overlay') as HTMLElement;
+      const captionsOverlay = findPrimeCaptionsOverlay();
       if (captionsOverlay) {
         console.log('[Comfortable Video] Restoring Prime Video captions overlay to original position');
         if (document.body.contains(originalCaptionsParent.parent)) {
@@ -1698,12 +1757,6 @@ function disableComfortMode(): void {
 
   // TTFCボタンの状態を更新
   updateTTFCButtonState();
-
-  // ユーザー操作でない自動解除の場合、次のエピソードの動画を待って自動再有効化
-  if (!suppressAutoReenabler) {
-    setTimeout(startAutoReenableWatcher, AUTO_REENABLE_START_DELAY);
-  }
-  suppressAutoReenabler = false;
 }
 
 // バックグラウンドスクリプトからのメッセージを受信
@@ -1904,8 +1957,6 @@ try {
   (window as any).__disableComfortMode = disableComfortMode;
   (window as any).__disableComfortModeByUser = disableComfortModeByUser;
   (window as any).__getIsComfortModeActive = () => isComfortModeActive;
-  (window as any).__getAutoReenableComfortMode = () => autoReenableComfortMode;
-  (window as any).__stopAutoReenableWatcher = stopAutoReenableWatcher;
 } catch (e) {
   // ignore
 }

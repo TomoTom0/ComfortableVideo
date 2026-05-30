@@ -17,7 +17,7 @@ echo ""
 
 # ビルド実行
 echo "🔨 Building TypeScript project..."
-bun run build
+pnpm run build
 
 if [ $? -ne 0 ]; then
     echo "❌ Build failed"

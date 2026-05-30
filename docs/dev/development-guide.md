@@ -10,7 +10,7 @@ Comfortable Video Chrome拡張機能の開発環境構築から実装、テス�
 
 | ソフトウェア | バージョン | 用途 |
 |-------------|-----------|------|
-| Bun | v1.0以上 | パッケージ管理・実行環境 |
+| pnpm | v9以上 | パッケージ管理 |
 | TypeScript | v5.0以上 | 型安全な開発 |
 | Chrome | 最新版 | テスト・デバッグ |
 | Git | v2.0以上 | バージョン管理 |
@@ -23,13 +23,13 @@ git clone [repository-url]
 cd comfortable-movie
 
 # 依存関係のインストール
-bun install
+pnpm install
 
 # 初回ビルド
-bun run build
+pnpm run build
 
 # 開発モードでの監視開始
-bun run watch
+pnpm run test:watch
 ```
 
 ### 開発用設定ファイル
@@ -58,15 +58,18 @@ bun run watch
 ```json
 {
   "scripts": {
-    "build": "tsc && bun run copy-assets",
-    "copy-assets": "cp manifest.json dist/ && cp src/*.css dist/ 2>/dev/null || true && cp src/*.html dist/ 2>/dev/null || true && cp -r icons dist/ 2>/dev/null || true",
-    "watch": "tsc --watch",
+    "build:scss": "sass src/content.scss public/content.css --style=compressed",
+    "build:ts": "esbuild src/content.ts --bundle --outfile=dist/content.js --target=chrome100 && esbuild src/background.ts --bundle --outfile=dist/background.js --target=chrome100 && esbuild src/options.ts --bundle --outfile=dist/options.js --target=chrome100",
+    "build:copy": "rsync -a public/ dist/ || cp -r public/. dist/ || true",
+    "build": "pnpm run build:scss && pnpm run build:ts && pnpm run build:copy",
     "clean": "rm -rf dist",
-    "rebuild": "bun run clean && bun run build"
+    "rebuild": "pnpm run clean && pnpm run build"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
-    "@types/chrome": "^0.0.246"
+    "@types/chrome": "^0.0.246",
+    "esbuild": "^0.20.0",
+    "sass": "^1.70.0"
   }
 }
 ```
@@ -540,13 +543,13 @@ git push origin v1.1.0
 1. **TypeScriptコンパイルエラー**
    ```bash
    # 型定義の確認
-   bun pm ls @types/chrome
+   pnpm ls @types/chrome
 
    # TypeScriptバージョン確認
    npx tsc --version
 
    # クリーンビルド
-   bun run clean && bun run build
+   pnpm run clean && pnpm run build
    ```
 
 2. **Chrome拡張機能が動作しない**
