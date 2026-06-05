@@ -1,6 +1,6 @@
 {
   "name": "comfortable-video",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "description": "Comfortable Video - 快適な動画視聴環境を提供するChrome拡張機能",
   "scripts": {
     "build:scss": "sass src/content.scss public/content.css --style=compressed",

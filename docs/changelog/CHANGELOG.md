@@ -2,6 +2,110 @@
 
 Comfortable Videoの変更履歴です。
 
+## [1.2.0] - 2026-06-05
+
+### 追加
+
+- **東映特撮ファンクラブ (TTFC) 対応**
+  - TTFC (pc.tokusatsu-fc.jp) で快適モードを使用可能にした
+  - プレーヤーコントロールバーに快適モードボタンを追加
+  - URLパターン別の個別対応:
+    - contents等のページ: Video.js プレーヤー (`#movie-player`)
+    - movie-stories ページ: 独自プレーヤー (`#player-wrapper`)、快適モード中は独自コントロールを非表示にして拡張機能の共通コントロールを使用
+
+- **カスタムコントロールにミュートボタンを追加**
+  - ワンクリックでミュート/ミュート解除を切り替え
+  - ミュート状態に応じてアイコンを自動更新（スピーカー/ミュートアイコン）
+  - 30秒送りボタンと現在時間表示の間に配置
+
+- **Prime Video広告自動ミュート機能**
+  - 快適モード有効時かつオプションで有効な場合のみ動作
+  - MutationObserverで広告要素を監視し、広告開始時に自動ミュート、終了時に元の状態に復元
+  - オプションページに設定項目を追加
+
+- **TTFC連続再生のgrace period対応**
+  - 「即座に解除して再有効化」から「grace period方式」に再設計
+  - 動画終了後5秒間の猶予期間を設け、次の動画の再生が検出されれば快適モードを維持
+
+### 修正
+
+- **YouTube快適モードで動画が黒背景に隠れる問題を修正**
+  - `#movie_player`を`document.body`の直接の子として移動し、スタッキングコンテキスト問題を解決
+
+- **Amazon Prime Videoで字幕が表示されない問題を修正**
+  - 字幕要素を動画と一緒にbodyに移動し、`position: fixed`で画面全体に配置
+
+- **カスタムコントロールの非表示タイミングを修正**
+  - 非表示ロジックの基準を「動画エリア全体」から「コントロールパネル自体のBoundingRect」に変更
+  - コントロールパネル外にカーソルが出た時点から500ms後に非表示
+
+- **コントロールエリアが動画より奥に隠れる問題を修正**
+  - `translateZ(0)`でGPUコンポジットレイヤーに強制昇格
+  - `html`要素にもスクロール防止クラスを付与
+
+- **TTFC快適モード解除時に動画要素が消える不具合を修正**
+  - 元の親要素が見つからない場合の`player.remove()`を削除
+
+- **快適モード解除時の元のインラインスタイル復元を修正** (PR#4)
+- **クリーンアップ処理の不要なremovePropertyを削除** (PR#3)
+- **startGracePeriodのバグ修正** (PR#12)
+  - videoWatcher停止、新規video検知、新規video最大化の3点を修正
+- **TTFC快適モード解除時の重複プレーヤー削除処理を追加** (PR#13)
+- **web_accessible_resources.matchesの冗長URLを削除** (PR#7)
+- **isTTFCMovieStories条件分岐のセレクタ分離** (PR#10)
+- **DOM復元操作前に存在チェックを追加** (PR#9)
+- **autoReenableWatcherのタイマーID保持とstop解放** (PR#11)
+- **MutationObserverでattributes変更を処理** (PR#11)
+- **disableComfortModeでstopAutoReenableWatcherを先頭呼び出し** (PR#11)
+
+### 改善
+
+- **スタイル管理をSCSSとクラスベースに移行**
+  - JavaScriptのインラインスタイル設定をSCSSとCSSクラス管理に完全移行
+  - ビルドスクリプトにsassパッケージを追加してSCSSコンパイルを実装
+
+- **サイト別クラス対応によるCSS保守性向上**
+  - YouTube、Amazon Prime Video、一般サイトを明示的に分離
+  - `<body>`にサイト種別クラスを追加
+
+- **SCSS変数を使用して色定義を管理** (PR#4)
+- **SVGアイコンの重複を定数化して解消** (PR#5)
+- **解除ボタンのホバーエフェクトを追加** (PR#3)
+- **冗長な型アサーションを削除** (PR#3)
+- **content.tsのas any型キャストを削除** (PR#10)
+- **コメントの時間参照を500msに修正** (PR#11)
+
+### 技術的改善
+
+- **Bunからpnpm+esbuildに移行**
+  - パッケージマネージャーとバンドラーを統一
+- **sites.tomlのTOMLコメント構文を修正** (PR#10)
+- **未使用beforeEachインポートを削除** (PR#10)
+
+### 変更されたファイル
+
+- `src/content.ts` - TTFC対応、ミュートボタン、grace period、各種バグ修正
+- `src/content.scss` - スタイルのSCSS化、サイト別クラス、字幕オーバーレイ
+- `public/manifest.json` - TTFCのcontent_scripts追加
+- `package.json` - pnpm+esbuild移行、SCSSコンパイル追加
+- `src/options.ts` - 広告自動ミュート設定追加
+
+## [1.1.4] - 2026-02-13
+
+### 改善
+
+- **スタイル管理をSCSSとクラスベースに完全移行**
+  - JavaScriptのインラインスタイル設定をSCSSとCSSクラス管理に移行
+  - 動的な値のみJavaScriptで設定し、静的なスタイルはすべてSCSSで管理
+
+- **Amazon Prime Videoで黒背景が動画より前面に出る問題を修正**
+  - インラインスタイル設定を完全削除し、CSSクラスベース管理に移行
+  - カスタムコントロールの自動非表示タイミングを修正
+
+- **カスタムコントロールのインラインスタイルを完全削除**
+  - opacity と pointer-events をCSSクラス管理に変更
+  - `.hidden` クラスの追加/削除のみで制御
+
 ## [1.1.3] - 2025-12-25
 
 ### 修正

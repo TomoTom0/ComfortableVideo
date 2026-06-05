@@ -1,4 +1,4 @@
-# Comfortable Video 開発者ガイド
+# Comfortable Video 開発者情報
 
 ## プロジェクト概要
 
@@ -9,173 +9,55 @@ Comfortable Videoは、TypeScriptで開発されたChrome拡張機能（Manifest
 
 - **TypeScript**: 型安全な開発
 - **Chrome Extension Manifest V3**: 最新の拡張機能API
-- **CSS**: スタイリングとz-index制御
+- **SCSS**: スタイリングとz-index制御（CSSクラスベース管理）
+- **esbuild**: 高速バンドリング
+- **pnpm**: パッケージ管理
 - **Service Worker**: バックグラウンド処理
 
 ## アーキテクチャ
 
+詳細は `docs/dev/architecture.md` を参照。
+
 ### ファイル構成
 ```
 src/
-├── content.ts       # コンテンツスクリプト（メイン機能）
-├── background.ts    # サービスワーカー（右クリックメニュー）
-└── content.css      # スタイルシート
+  content.ts       # コンテンツスクリプト（メイン機能）
+  content.scss     # スタイルシート（SCSS）
+  background.ts    # サービスワーカー（右クリックメニュー）
+  options.ts       # オプションページ
 
-dist/                # ビルド出力
-├── content.js
-├── background.js
-├── content.css
-└── manifest.json
+public/
+  manifest.json    # マニフェスト
+  content.css      # コンパイル済みCSS（ビルド生成）
+  options.html     # オプションページHTML
+  _locales/        # 多言語対応リソース（ja/en/zh）
+  icons/           # 拡張機能アイコン
 
-doc/
-├── user/           # ユーザー向けドキュメント
-└── dev/            # 開発者向けドキュメント
-```
-
-## 主要機能の実装
-
-### 1. 動画検出と最大化
-
-```typescript
-function enableComfortMode(): void {
-  const videos = document.querySelectorAll('video');
-  videos.forEach(video => {
-    if (video.videoWidth > 0 && video.videoHeight > 0) {
-      maximizeVideo(video);
-    }
-  });
-}
-```
-
-#### アスペクト比保持ロジック
-```typescript
-function maximizeVideo(video: HTMLVideoElement): void {
-  const windowAspectRatio = window.innerWidth / window.innerHeight;
-  const videoAspectRatio = video.videoWidth / video.videoHeight;
-
-  if (videoAspectRatio > windowAspectRatio) {
-    // 横長動画: 幅基準
-    newWidth = windowWidth;
-    newHeight = windowWidth / videoAspectRatio;
-  } else {
-    // 縦長動画: 高さ基準
-    newHeight = windowHeight;
-    newWidth = windowHeight * videoAspectRatio;
-  }
-}
-```
-
-### 2. z-index制御システム
-
-#### CSSクラスベース制御
-```typescript
-function applyZIndexControl(): void {
-  const style = document.createElement('style');
-  style.textContent = `
-    .comfort-mode-video {
-      z-index: 2147483647 !important; /* 最大値 */
-    }
-    body.comfort-mode-active *:not(.comfort-mode-video):not(#comfort-mode-exit-button) {
-      z-index: 999998 !important; /* 制限値 */
-    }
-  `;
-  document.head.appendChild(style);
-}
-```
-
-#### 復元機能
-```typescript
-function removeZIndexControl(): void {
-  // CSSスタイル削除
-  if (zIndexStyle) {
-    zIndexStyle.remove();
-  }
-  // クラス削除
-  document.body.classList.remove('comfort-mode-active');
-  videos.forEach(video => {
-    video.classList.remove('comfort-mode-video');
-  });
-}
-```
-
-### 3. スマートカーソル検出
-
-#### 二段階タイマーシステム + タップサポート
-```typescript
-// コントロール有効化（ホバー: 下部エリア2秒）
-if (isInVideoBottomArea && !isVideoControlsEnabled) {
-  cursorTimer = setTimeout(() => {
-    enableVideoControls();
-  }, HOVER_DETECTION_TIME);
-}
-
-// コントロール有効化（クリック: 即座）
-function handleClick(event: MouseEvent): void {
-  if (isClickInVideoBottomArea) {
-    if (cursorTimer) clearTimeout(cursorTimer);
-    if (!isVideoControlsEnabled) enableVideoControls();
-  }
-}
-
-// コントロール無効化（動画離脱3秒）
-if (!isInVideoArea && isVideoControlsEnabled) {
-  controlsDisableTimer = setTimeout(() => {
-    disableVideoControls();
-  }, CONTROLS_DISABLE_TIME);
-}
-```
-
-#### 領域検出ロジック
-```typescript
-function handleMouseMove(event: MouseEvent): void {
-  const rect = video.getBoundingClientRect();
-
-  // 動画全体チェック
-  const isInVideoArea = (
-    event.clientX >= rect.left && event.clientX <= rect.right &&
-    event.clientY >= rect.top && event.clientY <= rect.bottom
-  );
-
-  // 下部20%チェック
-  const bottomAreaTop = rect.bottom - (rect.height * 0.2);
-  const isInVideoBottomArea = isInVideoArea && (event.clientY >= bottomAreaTop);
-}
-```
-
-### 4. マウスイベント制御
-
-#### CSSセレクタでの動的制御
-```css
-/* コントロール無効時のみポインターイベント無効化 */
-body.comfort-mode-active:not(.video-controls-enabled) * {
-  pointer-events: none !important;
-}
-
-/* 解除ボタン: 常に有効 */
-body.comfort-mode-active #comfort-mode-exit-button {
-  pointer-events: auto !important;
-}
-
-/* コントロール有効時は自然に元の状態に戻る（CSSセレクタの条件分岐） */
+dist/              # ビルド出力
+docs/              # ドキュメント
+  user/            # ユーザー向け
+  dev/             # 開発者向け
+  changelog/       # 変更履歴
+  chrome-store/    # Chrome Web Store掲載情報
+tests/             # テストコード
 ```
 
 ## 開発フロー
 
 ### 1. 環境セットアップ
 ```bash
-bun install
+pnpm install
 ```
 
 ### 2. 開発時
 ```bash
-bun run watch    # ファイル変更を監視
+pnpm run build     # ビルド
+pnpm run rebuild   # クリーンビルド
 ```
 
-### 3. ビルドとデプロイ
+### 3. デプロイ
 ```bash
-bun run build        # 通常ビルド
-bun run rebuild      # クリーンビルド
-bun run deploy       # ビルドとデプロイを一括実行
+pnpm run deploy    # ビルドとデプロイを一括実行
 ```
 
 #### 環境設定
@@ -186,16 +68,36 @@ DEPLOY_DESTINATION=/home/tomo/user/Mine/_chex/src_comfortMovie/
 
 ### 4. デバッグ
 
-#### コンソールデバッグ
-```typescript
-console.log('Comfort mode activated');
-console.log('Video dimensions:', video.videoWidth, video.videoHeight);
-```
-
 #### Chrome DevTools
 1. `chrome://extensions/` → 「デベロッパーモード」
 2. 「バックグラウンドページを検査」
 3. 「コンテンツスクリプトを検査」
+
+詳細な開発ガイドは `docs/dev/development-guide.md` を参照。
+
+## 主要機能の実装
+
+### サイト検出
+
+拡張機能はURLパターンに基づいてサイトを検出し、各サイトに固有のセレクタで動画要素とコントロールバーを特定します。
+
+対応サイト:
+- **YouTube**: `#movie_player`、DOM移動でスタッキングコンテキスト問題を回避
+- **Amazon Prime Video**: 字幕要素の同期移動、広告自動ミュート対応
+- **東映特撮ファンクラブ (TTFC)**: Video.jsプレーヤー（contents）と独自プレーヤー（movie-stories）の2パターン
+- **TVer / Netflix など**: 汎用HTML5 video対応
+
+### スタイル管理
+
+JavaScriptでのインラインスタイル設定は行わず、全てSCSS（`src/content.scss`）でCSSクラスとして管理しています。動的な値（位置・サイズ）のみJavaScriptで設定します。
+
+### z-index制御システム
+
+CSSクラスベースで制御。サイト種別ごとに`<body>`にクラスを付与（`comfortable-video-youtube`等）し、SCSSで個別にスタイルを定義します。
+
+### 連続再生対応（grace period）
+
+動画終了時に即座に快適モードを解除せず、5秒間の猶予期間を設けて次の動画の再生を待機します。MutationObserverとイベントリスナーで新動画を検出し、快適モードを維持します。
 
 ## 設計原則
 
@@ -204,56 +106,30 @@ console.log('Video dimensions:', video.videoWidth, video.videoHeight);
 - CSSクラスベースで状態管理
 - 元のスタイルを保存・復元
 
-### 2. パフォーマンス
-- タイマーの適切な管理
-- イベントリスナーの登録・削除
-- DOM操作の最小化
+### 2. スタイルはSCSSで管理
+- インラインスタイルは使用しない
+- CSSクラスの追加/削除のみで制御
 
 ### 3. 互換性
 - 各種動画サイト対応
 - レスポンシブ対応
 - 既存UIとの共存
 
-## 拡張ポイント
-
-### 1. 新しい動画サイト対応
-```typescript
-// サイト固有のセレクタ追加
-const videoSelectors = [
-  'video',
-  '.video-player video',
-  '[data-video] video'
-];
-```
-
-### 2. カスタマイズ可能設定
-```typescript
-const CONFIG = {
-  HOVER_DETECTION_TIME: 2000,
-  CONTROLS_DISABLE_TIME: 3000,
-  BOTTOM_AREA_RATIO: 0.2
-};
-```
-
-### 3. 新機能追加
-- 音量コントロール
-- 字幕表示制御
-- キーボードショートカット
+### 4. 多言語対応
+- `chrome.i18n.getMessage()` または `data-i18n` 属性で管理
+- 対応言語: 日本語（ja）、英語（en）、中国語（zh）
+- ソースコードやHTMLにハードコードしない
 
 ## テスト
 
-### 手動テスト項目
-1. 動画検出・最大化
-2. コントロール有効化・無効化
-3. z-index制御
-4. 解除機能
-5. 複数動画対応
+テスト構成の詳細は `tests/README.md` を参照。
 
 ### 対象サイト
 
 自動起動（主要サイト）：
 - YouTube
 - Amazon Prime Video
+- 東映特撮ファンクラブ (TTFC)
 - TVer
 - Netflix
 
@@ -269,22 +145,16 @@ const CONFIG = {
    - `video.videoWidth`が0の場合があるため、ロード待ちが必要
 
 2. **z-indexが効かない**
-   - サイト固有の高いz-indexに対応が必要
+   - スタッキングコンテキストの問題。親要素のposition/transform/isolation等を確認
 
-3. **コントロールが反応しない**
-   - 座標計算の精度向上が必要
+3. **コントロールが動画の背後に隠れる**
+   - `translateZ(0)`でGPUコンポジットレイヤーに強制昇格
 
 ### デバッグ方法
 ```typescript
 // 動画要素の確認
 console.log('Found videos:', document.querySelectorAll('video'));
 
-// z-index値の確認
-const computedStyle = window.getComputedStyle(element);
-console.log('z-index:', computedStyle.zIndex);
-
-// マウス座標の確認
-document.addEventListener('mousemove', (e) => {
-  console.log('Mouse:', e.clientX, e.clientY);
-});
+// スタッキングコンテキストの確認（快適モード有効化時に自動出力）
+// console.debugで親要素の解析結果が表示される
 ```
