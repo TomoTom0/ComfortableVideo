@@ -1679,7 +1679,13 @@ function disableComfortMode(): void {
             originalVideoParent.parent.appendChild(player);
           }
         } else {
-          console.warn('[Comfortable Video] Original parent element not found. Player will remain in body.');
+          const duplicatePlayer = Array.from(document.querySelectorAll('#' + playerId)).find(el => el !== player);
+          if (duplicatePlayer) {
+            console.warn('[Comfortable Video] Original parent not found and a duplicate player exists. Removing orphaned player.');
+            player.remove();
+          } else {
+            console.warn('[Comfortable Video] Original parent element not found. Player will remain in body.');
+          }
         }
         originalVideoParent = null;
       }
