@@ -117,7 +117,8 @@
     primeVideo: boolean,
     allSites: boolean
   },
-  exitButtonOpacity: number        // 0-100
+  exitButtonOpacity: number,       // 0-100
+  autoMuteAds: boolean             // Prime Video広告自動ミュート
 }
 ```
 
@@ -143,7 +144,8 @@
     "*://www.amazon.com/*/video/*",
     "*://tver.jp/*",
     "*://*.tver.jp/*",
-    "*://*.netflix.com/*"
+    "*://*.netflix.com/*",
+    "*://pc.tokusatsu-fc.jp/*"
   ],
   "js": ["content.js"],
   "css": ["content.css"],
@@ -161,7 +163,7 @@ Content scriptsは、ウェブページに必要な機能を注入します：
 5. **キーボードショートカットの処理**（ESCで終了）
 
 **スコープ（ハイブリッド方式）:**
-主要な動画サービス（YouTube、Amazon Prime Video、TVer、Netflix）では、ページ読み込み時に自動的にContent Scriptが注入されます。それ以外のサイトでは、ユーザーが右クリックメニューまたは拡張機能アイコンをクリックした際に`scripting` APIで動的に注入されます。
+主要な動画サービス（YouTube、Amazon Prime Video、東映特撮ファンクラブ、TVer、Netflix）では、ページ読み込み時に自動的にContent Scriptが注入されます。それ以外のサイトでは、ユーザーが右クリックメニューまたは拡張機能アイコンをクリックした際に`scripting` APIで動的に注入されます。
 
 **データ取り扱い:**
 - ページからのデータ抽出なし
