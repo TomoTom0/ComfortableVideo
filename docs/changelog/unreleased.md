@@ -101,6 +101,27 @@
 **関連ファイル**:
 - `src/content.ts`: `startGracePeriod()`, `cancelGracePeriod()` 追加、auto-reenable関連コード削除、`checkVideoEnded()` をgrace period開始に変更
 
+### TTFC快適モード解除時に動画要素が消える不具合の修正
+
+**問題**:
+- 東映特撮ファンクラブ（TTFC）で動画再生が停止した後に快適モードを解除すると、プレーヤー要素がDOMから完全に削除され、ページ上で動画が見えなくなる
+
+**原因**:
+- 動画停止時にTTFC側がページDOMを書き換え、快適モード有効化時に記録した元の親要素をDOMから除去する
+- 快適モード解除時、元の親が見つからない場合に `player.remove()` が実行され、プレーヤー自体が消滅していた
+- YouTubeやその他サイトの同じ箇所は `console.warn` のみで削除しない一方、TTFCだけが `player.remove()` を呼んでいた
+
+**修正内容**:
+- TTFCのrestore処理で、元の親要素が見つからない場合の `player.remove()` を削除
+- YouTube・その他サイトと同じ「warnのみ」の挙動に統一（プレーヤーはbodyに残存）
+
+**影響範囲**:
+- TTFC (pc.tokusatsu-fc.jp) のみ
+- 他のサイトには影響なし
+
+**関連ファイル**:
+- `src/content.ts`: `disableComfortMode()` 内TTFC分岐のrestore処理
+
 ### Prime Video字幕表示の修正
 
 **問題**:

@@ -1679,8 +1679,7 @@ function disableComfortMode(): void {
             originalVideoParent.parent.appendChild(player);
           }
         } else {
-          console.warn('[Comfortable Video] Original parent element not found. Removing orphaned player from body.');
-          player.remove();
+          console.warn('[Comfortable Video] Original parent element not found. Player will remain in body.');
         }
         originalVideoParent = null;
       }
