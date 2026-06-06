@@ -1,0 +1,35 @@
+[tasks.build]
+description = "Build the extension (scss + ts + copy assets)"
+run = "pnpm run build"
+
+[tasks.deploy]
+description = "Deploy dist/ to DEPLOY_DESTINATION via rsync"
+run = "./scripts/deploy.sh"
+
+[tasks."build-and-deploy"]
+description = "Build then deploy"
+run = "./scripts/build-and-deploy.sh"
+
+[tasks.clean]
+description = "Remove dist/ directory"
+run = "rm -rf dist"
+
+[tasks.rebuild]
+description = "Clean build (remove dist/ then build)"
+run = "pnpm run rebuild"
+
+[tasks.watch]
+description = "Watch TypeScript changes"
+run = "pnpm run watch"
+
+[tasks.test]
+description = "Run tests"
+run = "pnpm run test"
+
+[tasks."test:watch"]
+description = "Run tests in watch mode"
+run = "pnpm run test:watch"
+
+[tasks.package]
+description = "Create zip package from dist/"
+run = "./scripts/package.sh"

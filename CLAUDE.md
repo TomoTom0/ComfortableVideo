@@ -1,21 +1,23 @@
 # Comfortable Video - プロジェクト固有のルール
 
-## パッケージマネージャー
+## タスクランナー
 
-このプロジェクトは **pnpm** を使用しています。
+このプロジェクトは **mise**（`.mise.toml`）でタスクを管理しています。
 
-- パッケージのインストール: `pnpm install`
-- ビルド: `pnpm run build`
-- クリーンビルド: `pnpm run rebuild`
-- デプロイ: `pnpm run deploy`
+- ビルド: `mise run build`
+- デプロイ: `mise run deploy`
+- ビルド+デプロイ: `mise run build-and-deploy`
+- クリーンビルド: `mise run rebuild`
+- テスト: `mise run test`
+- パッケージ作成: `mise run package`
 
-**重要**: `npm` や `yarn`、`bun` を使用しないでください。すべての依存関係管理とスクリプト実行は `pnpm` で行います。
+**重要**: ビルド・デプロイ等のタスク実行には `mise run` を使用してください。`pnpm run` は直接使わず、miseタスク経由で実行します。パッケージのインストールのみ `pnpm install` を直接使用します。`npm`、`yarn`、`bun` は使用禁止です。
 
 ## ビルドとデプロイ
 
-- ソースコード更新後は必ず `pnpm run build` を実行してください
-- ビルド後は必ず `pnpm run deploy` を実行してください
-- 本番環境へのデプロイ前には `pnpm run rebuild` でクリーンビルドを推奨します
+- ソースコード更新後は必ず `mise run build` を実行してください
+- ビルド後は必ず `mise run deploy` を実行してください
+- 本番環境へのデプロイ前には `mise run rebuild` でクリーンビルドを推奨します
 - バンドラーに **esbuild** を使用しています（`build:ts` スクリプト）
 
 ## スタイル管理

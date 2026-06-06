@@ -10,7 +10,8 @@ Comfortable Video Chrome拡張機能の開発環境構築から実装、テス�
 
 | ソフトウェア | バージョン | 用途 |
 |-------------|-----------|------|
-| pnpm | v9以上 | パッケージ管理 |
+| mise | 最新版 | タスクランナー（ビルド・デプロイ等） |
+| pnpm | v9以上 | パッケージ管理（インストールのみ） |
 | TypeScript | v5.0以上 | 型安全な開発 |
 | Chrome | 最新版 | テスト・デバッグ |
 | Git | v2.0以上 | バージョン管理 |
@@ -26,10 +27,10 @@ cd comfortable-movie
 pnpm install
 
 # 初回ビルド
-pnpm run build
+mise run build
 
 # 開発モードでの監視開始
-pnpm run test:watch
+mise run test:watch
 ```
 
 ### 開発用設定ファイル
@@ -549,7 +550,7 @@ git push origin v1.1.0
    npx tsc --version
 
    # クリーンビルド
-   pnpm run clean && pnpm run build
+   mise run rebuild
    ```
 
 2. **Chrome拡張機能が動作しない**

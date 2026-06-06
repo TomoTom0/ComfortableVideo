@@ -1167,7 +1167,7 @@ function showCustomControls(): void {
   rewind30Btn.innerHTML = `
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M2.5 2v6h6M2.66 15.57a10 10 0 1 0 .57-8.38"/>
-      <text x="12" y="16" font-size="8" fill="currentColor" text-anchor="middle">30</text>
+      <text x="12" y="16" font-size="8" fill="currentColor" stroke="none" text-anchor="middle">30</text>
     </svg>
   `;
   rewind30Btn.addEventListener('click', (e) => {
@@ -1180,7 +1180,7 @@ function showCustomControls(): void {
   rewind10Btn.innerHTML = `
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M2.5 2v6h6M2.66 15.57a10 10 0 1 0 .57-8.38"/>
-      <text x="12" y="16" font-size="8" fill="currentColor" text-anchor="middle">10</text>
+      <text x="12" y="16" font-size="8" fill="currentColor" stroke="none" text-anchor="middle">10</text>
     </svg>
   `;
   rewind10Btn.addEventListener('click', (e) => {
@@ -1253,7 +1253,7 @@ function showCustomControls(): void {
   forward10Btn.innerHTML = `
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38"/>
-      <text x="12" y="16" font-size="8" fill="currentColor" text-anchor="middle">10</text>
+      <text x="12" y="16" font-size="8" fill="currentColor" stroke="none" text-anchor="middle">10</text>
     </svg>
   `;
   forward10Btn.addEventListener('click', (e) => {
@@ -1266,7 +1266,7 @@ function showCustomControls(): void {
   forward30Btn.innerHTML = `
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38"/>
-      <text x="12" y="16" font-size="8" fill="currentColor" text-anchor="middle">30</text>
+      <text x="12" y="16" font-size="8" fill="currentColor" stroke="none" text-anchor="middle">30</text>
     </svg>
   `;
   forward30Btn.addEventListener('click', (e) => {
