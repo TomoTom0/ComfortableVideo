@@ -127,7 +127,8 @@ style.textContent = `
 - 快適モード有効化時、`#movie_player` を `document.body` の直接の子として移動
   - **理由**: `ytd-app`（`position: absolute`）の子孫要素は、`position: fixed` と高い `z-index` を設定しても黒いオーバーレイの背面に隠れる問題がある
   - `#movie_player` を body に移動することで z-index 競合を回避
-  - 快適モード解除時に元の親要素・位置に復元
+  - 快適モード解除時にプレースホルダー要素（`#comfort-mode-player-placeholder`）を利用して元の位置に復元
+  - プレースホルダーが見つからない場合は元の親要素情報から復元
 
 **Amazon Prime Video**:
 - `.atvwebplayersdk-hideabletopbuttons-container` へのボタン追加
@@ -136,11 +137,14 @@ style.textContent = `
 **東映特撮ファンクラブ (TTFC)**:
 - `.player-bottom-bar` または `#movie-player .vjs-control-bar` への快適モードボタン追加
 - URLパターン (`movie-stories` vs その他) に応じてプレーヤー要素 (`#player-wrapper` or `#movie-player`) を body に移動
+- 快適モード解除時にプレースホルダーから復元。プレースホルダーも元の親も見つからない場合は `findTTFCPlayerContainer()` で適切なコンテナを検索
+- 復元後にプレーヤーのサイズが0の場合、セーフティチェックで最低限の可視性を確保
 - `movie-stories` ページでは独自コントロール (`#player-controls`) を非表示にして拡張機能のカスタムコントロールを使用
 - エピソード連続再生対応: grace period方式（動画終了後5秒間次の動画を待機、検出時は快適モード維持）
 
 **汎用サイト**:
 - `video` 要素を `document.body` に移動して親要素のスタッキングコンテキストから独立させる
+- 快適モード解除時にプレースホルダーから元の位置に復元
 
 ### 3. Options Page (`options.ts`, `options.html`)
 

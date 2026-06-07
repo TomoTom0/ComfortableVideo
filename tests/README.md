@@ -16,7 +16,8 @@ tests/
     ├── utils/
     │   └── site-detection.test.ts    # サイト判定関数のユニットテスト
     └── content/
-        └── auto-reenable.test.ts     # grace period（連続再生時の快適モード維持）のテスト
+        ├── auto-reenable.test.ts     # grace period（連続再生時の快適モード維持）のテスト
+        └── player-restore.test.ts    # プレースホルダーベースのプレーヤー復元テスト
 ```
 
 ## テスト環境
@@ -32,6 +33,7 @@ tests/
 |---|---|---|
 | `src/utils/site-detection.ts` | `tests/unit/utils/site-detection.test.ts` | 判定関数の追加・変更時 |
 | `src/content.ts`（grace period） | `tests/unit/content/auto-reenable.test.ts` | `disableComfortMode` / `checkVideoEnded` / `startGracePeriod` / `cancelGracePeriod` の変更時 |
+| `src/content.ts`（プレーヤー復元） | `tests/unit/content/player-restore.test.ts` | `maximizeVideo` / `disableComfortMode` の復元ロジック変更時 |
 
 ## テスト更新が必要なタイミング
 
@@ -40,6 +42,7 @@ tests/
 - 既存判定ロジックの修正時
 - `disableComfortMode` / `disableComfortModeByUser` の動作を変更したとき
 - grace periodロジック（`startGracePeriod` / `cancelGracePeriod`）を変更したとき
+- `maximizeVideo` / プレーヤー復元ロジックを変更したとき
 
 ## 命名規則
 
