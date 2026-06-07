@@ -1519,7 +1519,7 @@ function findTTFCPlayerContainer(playerId: string): HTMLElement | null {
 
   // セレクタで見つからない場合: 空のコンテナを探す
   // プレーヤーIDに関連する要素の近くにある空の親要素を探す
-  const allContainers = document.querySelectorAll('[class*="player"], [class*="video-container"]');
+  const allContainers = document.querySelectorAll('div[class*="player"], div[class*="video-container"]');
   for (const el of allContainers) {
     const htmlEl = el as HTMLElement;
     // プレーヤーが既に中にあるものは除外
@@ -1844,12 +1844,10 @@ function disableComfortMode(): void {
         player.setAttribute('style', visibleStyle);
       }
     }
-    // 残存プレースホルダーのクリーンアップ
-    const remainingPlaceholder = document.getElementById(PLAYER_PLACEHOLDER_ID);
-    if (remainingPlaceholder) {
-      remainingPlaceholder.remove();
-    }
   }
+
+  // 残存プレースホルダーのクリーンアップ（全サイト共通）
+  document.querySelectorAll('#' + PLAYER_PLACEHOLDER_ID).forEach(el => el.remove());
 
   // 解除ボタンを削除
   if (exitButton) {
