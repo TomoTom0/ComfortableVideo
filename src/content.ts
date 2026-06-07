@@ -44,6 +44,9 @@ let originalVideoParent: {
   nextSibling: Node | null;
 } | null = null;
 
+// プレーヤーの元位置をマークするプレースホルダーのID
+const PLAYER_PLACEHOLDER_ID = 'comfort-mode-player-placeholder';
+
 // Prime Video字幕の元の位置を記録
 let originalCaptionsParent: {
   parent: HTMLElement;
@@ -690,6 +693,12 @@ function maximizeVideo(video: HTMLVideoElement): void {
           parent: player.parentElement,
           nextSibling: player.nextSibling
         };
+
+        // プレーヤーの元位置にプレースホルダーを挿入（復元時の目印）
+        const placeholder = document.createElement('div');
+        placeholder.id = PLAYER_PLACEHOLDER_ID;
+        placeholder.style.display = 'none';
+        player.parentElement.insertBefore(placeholder, player);
       }
 
       // bodyに移動（ytd-app内ではz-indexが正しく機能しないため）
@@ -729,6 +738,12 @@ function maximizeVideo(video: HTMLVideoElement): void {
         nextSibling: player.nextSibling
       };
 
+      // プレーヤーの元位置にプレースホルダーを挿入（復元時の目印）
+      const placeholder = document.createElement('div');
+      placeholder.id = PLAYER_PLACEHOLDER_ID;
+      placeholder.style.display = 'none';
+      player.parentElement.insertBefore(placeholder, player);
+
       document.body.appendChild(player);
       player.classList.add('comfort-mode-video-container');
       player.classList.add('comfort-mode-exempt');
@@ -747,6 +762,12 @@ function maximizeVideo(video: HTMLVideoElement): void {
         parent: originalVideoParent.parent.tagName,
         hasNextSibling: !!originalVideoParent.nextSibling
       });
+
+      // 動画要素の元位置にプレースホルダーを挿入（復元時の目印）
+      const placeholder = document.createElement('div');
+      placeholder.id = PLAYER_PLACEHOLDER_ID;
+      placeholder.style.display = 'none';
+      video.parentElement.insertBefore(placeholder, video);
     }
 
     // 動画要素をbodyに移動（親要素のスタッキングコンテキストから完全に独立）
@@ -1471,6 +1492,45 @@ function findPrimeCaptionsOverlay(): HTMLElement | null {
   return null;
 }
 
+// TTFCページでプレーヤーの格納先コンテナを探す
+// 元の親が失われた場合のフォールバックとして使用
+function findTTFCPlayerContainer(playerId: string): HTMLElement | null {
+  // movie-player用のコンテナ候補セレクタ
+  const containerSelectors = playerId === 'player-wrapper'
+    ? [
+        '.movie-stories-player',
+        '.player-wrapper-container',
+        '[class*="movie-stories"] [class*="player"]',
+      ]
+    : [
+        '.player-wrap',
+        '.player-container',
+        '.content-player',
+        '[class*="player-container"]',
+        '[class*="player-wrap"]',
+      ];
+
+  for (const selector of containerSelectors) {
+    const container = document.querySelector(selector) as HTMLElement;
+    if (container && !container.querySelector('#' + playerId)) {
+      return container;
+    }
+  }
+
+  // セレクタで見つからない場合: 空のコンテナを探す
+  // プレーヤーIDに関連する要素の近くにある空の親要素を探す
+  const allContainers = document.querySelectorAll('div[class*="player"], div[class*="video-container"]');
+  for (const el of allContainers) {
+    const htmlEl = el as HTMLElement;
+    // プレーヤーが既に中にあるものは除外
+    if (!htmlEl.querySelector('#' + playerId) && htmlEl.children.length === 0) {
+      return htmlEl;
+    }
+  }
+
+  return null;
+}
+
 // Prime Video字幕監視を開始
 function startPrimeCaptionsObserver(): void {
   if (!isPrimeVideo() || primeCaptionsObserver) {
@@ -1650,7 +1710,12 @@ function disableComfortMode(): void {
       player.classList.remove('comfort-mode-video-container');
       // bodyに移動した#movie_playerを元の位置に戻す
       if (originalVideoParent) {
-        if (document.body.contains(originalVideoParent.parent)) {
+        // プレースホルダーから復元（最優先）
+        const placeholder = document.getElementById(PLAYER_PLACEHOLDER_ID);
+        if (placeholder && placeholder.parentElement) {
+          placeholder.parentElement.insertBefore(player, placeholder);
+          placeholder.remove();
+        } else if (document.body.contains(originalVideoParent.parent)) {
           if (originalVideoParent.nextSibling && originalVideoParent.parent.contains(originalVideoParent.nextSibling)) {
             originalVideoParent.parent.insertBefore(player, originalVideoParent.nextSibling);
           } else {
@@ -1672,19 +1737,33 @@ function disableComfortMode(): void {
     if (player) {
       player.classList.remove('comfort-mode-video-container');
       if (originalVideoParent) {
-        if (document.body.contains(originalVideoParent.parent)) {
+        // プレースホルダーから復元（最優先）
+        const placeholder = document.getElementById(PLAYER_PLACEHOLDER_ID);
+        if (placeholder && placeholder.parentElement) {
+          placeholder.parentElement.insertBefore(player, placeholder);
+          placeholder.remove();
+        } else if (document.body.contains(originalVideoParent.parent)) {
           if (originalVideoParent.nextSibling && originalVideoParent.parent.contains(originalVideoParent.nextSibling)) {
             originalVideoParent.parent.insertBefore(player, originalVideoParent.nextSibling);
           } else {
             originalVideoParent.parent.appendChild(player);
           }
         } else {
+          // 元の親もプレースホルダーも見つからない場合
           const duplicatePlayer = Array.from(document.querySelectorAll('#' + playerId)).find(el => el !== player);
           if (duplicatePlayer) {
             console.warn('[Comfortable Video] Original parent not found and a duplicate player exists. Removing orphaned player.');
             player.remove();
           } else {
-            console.warn('[Comfortable Video] Original parent element not found. Player will remain in body.');
+            console.warn('[Comfortable Video] Original parent and placeholder not found. Attempting to find a suitable container.');
+            // ページ上のプレーヤー格納先を探す
+            const container = findTTFCPlayerContainer(playerId);
+            if (container) {
+              container.appendChild(player);
+              console.log('[Comfortable Video] Player moved to found container:', container.tagName, container.className);
+            } else {
+              console.warn('[Comfortable Video] No suitable container found. Player will remain in body.');
+            }
           }
         }
         originalVideoParent = null;
@@ -1695,7 +1774,12 @@ function disableComfortMode(): void {
     if (originalVideoParent && currentActiveVideo) {
       console.log('[Comfortable Video] Restoring video to original position');
       const video = currentActiveVideo;
-      if (document.body.contains(originalVideoParent.parent)) {
+      // プレースホルダーから復元（最優先）
+      const placeholder = document.getElementById(PLAYER_PLACEHOLDER_ID);
+      if (placeholder && placeholder.parentElement) {
+        placeholder.parentElement.insertBefore(video, placeholder);
+        placeholder.remove();
+      } else if (document.body.contains(originalVideoParent.parent)) {
         if (originalVideoParent.nextSibling && originalVideoParent.parent.contains(originalVideoParent.nextSibling)) {
           originalVideoParent.parent.insertBefore(video, originalVideoParent.nextSibling);
         } else {
@@ -1744,6 +1828,26 @@ function disableComfortMode(): void {
   });
 
   originalVideoStyles.clear();
+
+  // セーフティチェック: プレーヤーが不可視の場合に最低限の表示を確保
+  if (isTTFC()) {
+    const playerId = isTTFCMovieStories() ? 'player-wrapper' : 'movie-player';
+    const player = document.getElementById(playerId);
+    if (player) {
+      const rect = player.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        console.warn('[Comfortable Video] Player has zero dimensions after restoration. Forcing visibility.');
+        const originalStyle = player.getAttribute('style') || '';
+        const visibleStyle = originalStyle
+          ? originalStyle + '; position: relative; width: 100%; min-height: 300px'
+          : 'position: relative; width: 100%; min-height: 300px';
+        player.setAttribute('style', visibleStyle);
+      }
+    }
+  }
+
+  // 残存プレースホルダーのクリーンアップ（全サイト共通）
+  document.querySelectorAll('#' + PLAYER_PLACEHOLDER_ID).forEach(el => el.remove());
 
   // 解除ボタンを削除
   if (exitButton) {
