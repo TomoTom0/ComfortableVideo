@@ -83,7 +83,7 @@ DEPLOY_DESTINATION=/home/tomo/user/Mine/_chex/src_comfortMovie/
 
 対応サイト:
 - **YouTube**: `#movie_player`、DOM移動でスタッキングコンテキスト問題を回避
-- **Amazon Prime Video**: 字幕要素の同期移動、広告自動ミュート対応
+- **Amazon Prime Video**: 字幕要素の同期移動
 - **東映特撮ファンクラブ (TTFC)**: Video.jsプレーヤー（contents）と独自プレーヤー（movie-stories）の2パターン
 - **TVer / Netflix など**: 汎用HTML5 video対応
 
