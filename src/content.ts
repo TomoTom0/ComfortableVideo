@@ -1556,6 +1556,8 @@ function startPrimeCaptionsObserver(): void {
 
       // bodyに移動
       document.body.appendChild(overlay);
+      // z-index制限の免除クラスを付与（maximizeVideoでの字幕移動と同様の扱い）
+      overlay.classList.add('comfort-mode-exempt');
       console.log('[Comfortable Video] Prime Video captions overlay moved to body (via observer)');
     }
   };
