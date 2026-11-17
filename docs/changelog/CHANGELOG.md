@@ -2,6 +2,28 @@
 
 Comfortable Videoの変更履歴です。
 
+## [1.2.1] - 2026-11-17
+
+### 修正
+
+- **TTFC快適モード終了時に動画表示が消える不具合を修正**
+  - プレースホルダー要素による確実な位置復元、TTFC用コンテナ検索フォールバック、復元後のセーフティチェックを追加
+- **findTTFCPlayerContainerのセレクタをdiv限定に変更** (PR#16)
+  - インライン要素誤検出を防止
+- **プレースホルダークリーンアップをisTTFC()外に移動** (PR#16)
+  - 全サイトで残存プレースホルダーを確実に削除
+- **SVGコントロールボタンの数字がつぶれる不具合を修正** (PR#15)
+  - 巻き戻し・早送りボタンのSVGテキスト（10/30）に`stroke="none"`を追加し、アウトラインによるつぶれを解消
+- **Prime Videoで快適モード中に動的に生成された字幕オーバーレイが背面に回る不具合を修正** (PR#17)
+  - `startPrimeCaptionsObserver` の移動経路にも `comfort-mode-exempt` クラスの付与を追加し、z-index制限による字幕の背面化を防止
+
+### 技術的改善
+
+- v1.2.0.mdの見出しをUnreleasedからv1.2.0に修正 (PR#14)
+- デプロイスクリプト参照をrsync.shからdeploy.shに統一し、古いrsync.shを削除 (PR#15)
+- ビルド・デプロイ等のタスク実行をpnpm runからmise（`.mise.toml`）に移行 (PR#15)
+- v1.2.0 CHANGELOGとドキュメントから未実装機能（Prime Video広告自動ミュート）の誤記載を削除
+
 ## [1.2.0] - 2026-06-05
 
 ### 追加
@@ -17,11 +39,6 @@ Comfortable Videoの変更履歴です。
   - ワンクリックでミュート/ミュート解除を切り替え
   - ミュート状態に応じてアイコンを自動更新（スピーカー/ミュートアイコン）
   - 30秒送りボタンと現在時間表示の間に配置
-
-- **Prime Video広告自動ミュート機能**
-  - 快適モード有効時かつオプションで有効な場合のみ動作
-  - MutationObserverで広告要素を監視し、広告開始時に自動ミュート、終了時に元の状態に復元
-  - オプションページに設定項目を追加
 
 - **TTFC連続再生のgrace period対応**
   - 「即座に解除して再有効化」から「grace period方式」に再設計
@@ -88,7 +105,7 @@ Comfortable Videoの変更履歴です。
 - `src/content.scss` - スタイルのSCSS化、サイト別クラス、字幕オーバーレイ
 - `public/manifest.json` - TTFCのcontent_scripts追加
 - `package.json` - pnpm+esbuild移行、SCSSコンパイル追加
-- `src/options.ts` - 広告自動ミュート設定追加
+- `src/options.ts` - TTFC有効化設定追加
 
 ## [1.1.4] - 2026-02-13
 

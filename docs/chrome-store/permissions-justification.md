@@ -118,7 +118,6 @@
     allSites: boolean
   },
   exitButtonOpacity: number,       // 0-100
-  autoMuteAds: boolean             // Prime Video広告自動ミュート
 }
 ```
 
