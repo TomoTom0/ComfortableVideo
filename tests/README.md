@@ -18,6 +18,7 @@ tests/
     └── content/
         ├── auto-reenable.test.ts     # grace period（連続再生時の快適モード維持）のテスト
         ├── player-restore.test.ts    # プレースホルダーベースのプレーヤー復元テスト
+        ├── click-toggle.test.ts      # 動画クリックの再生/一時停止トグル（二重トグル防止）のテスト
         └── prime-captions-exempt.test.ts  # Prime Video字幕オーバーレイのexemptクラス付与テスト
 ```
 
@@ -35,6 +36,7 @@ tests/
 | `src/utils/site-detection.ts` | `tests/unit/utils/site-detection.test.ts` | 判定関数の追加・変更時 |
 | `src/content.ts`（grace period） | `tests/unit/content/auto-reenable.test.ts` | `disableComfortMode` / `checkVideoEnded` / `startGracePeriod` / `cancelGracePeriod` の変更時 |
 | `src/content.ts`（プレーヤー復元） | `tests/unit/content/player-restore.test.ts` | `maximizeVideo` / `disableComfortMode` の復元ロジック変更時 |
+| `src/content.ts`（クリック処理） | `tests/unit/content/click-toggle.test.ts` | `handleClick` / `startCursorDetection` の変更時 |
 | `src/content.ts`（Prime Video字幕） | `tests/unit/content/prime-captions-exempt.test.ts` | `startPrimeCaptionsObserver` / `moveCaptionsToBody` の変更時 |
 
 ## テスト更新が必要なタイミング
@@ -45,6 +47,7 @@ tests/
 - `disableComfortMode` / `disableComfortModeByUser` の動作を変更したとき
 - grace periodロジック（`startGracePeriod` / `cancelGracePeriod`）を変更したとき
 - `maximizeVideo` / プレーヤー復元ロジックを変更したとき
+- `handleClick` / クリックの伝播制御を変更したとき
 
 ## 命名規則
 
