@@ -878,14 +878,17 @@ function startVideoPlaybackMonitoring(): void {
 // カーソル検出を開始する関数
 function startCursorDetection(): void {
   document.addEventListener('mousemove', handleMouseMove);
-  document.addEventListener('click', handleClick);
+  // click は capture フェーズで受け取る。動画要素へのクリックを拡張側で
+  // 処理する際に、プラットフォーム自身のクリック処理（YouTube の
+  // 再生/一時停止トグル等）へ伝播させないため
+  document.addEventListener('click', handleClick, true);
   startVideoPlaybackMonitoring();
 }
 
 // カーソル検出を停止する関数
 function stopCursorDetection(): void {
   document.removeEventListener('mousemove', handleMouseMove);
-  document.removeEventListener('click', handleClick);
+  document.removeEventListener('click', handleClick, true);
   if (cursorTimer) {
     clearTimeout(cursorTimer);
     cursorTimer = null;
@@ -1046,23 +1049,24 @@ function handleClick(event: MouseEvent): void {
   const videos = document.querySelectorAll('video.comfort-mode-video') as NodeListOf<HTMLVideoElement>;
   if (videos.length === 0) return;
 
-  // 動画エリア内でのクリックをチェック
+  // クリック対象が動画要素自身の場合だけを処理する。
+  // 座標ではなくターゲットで判定するのは、終了ボタンやカスタムコントロール等、
+  // 動画の矩形範囲内に重なる他要素へのクリックを横取りしないため
   let clickedVideo: HTMLVideoElement | null = null;
 
   videos.forEach(video => {
-    const rect = video.getBoundingClientRect();
-
-    // 動画全体の範囲内かチェック
-    const isInVideoArea = event.clientX >= rect.left && event.clientX <= rect.right &&
-                         event.clientY >= rect.top && event.clientY <= rect.bottom;
-
-    if (isInVideoArea) {
+    if (event.target === video || video.contains(event.target as Node)) {
       clickedVideo = video;
     }
   });
 
-  // 動画エリアをクリックした場合の処理
+  // 動画要素をクリックした場合の処理
   if (clickedVideo !== null) {
+    // このクリックは拡張側で処理する。プラットフォーム自身のクリック処理
+    // （YouTube の再生/一時停止トグル等）が同じクリックで二重に動作しないよう、
+    // ここで伝播を止める（capture フェーズで受け取っているため、
+    // プラットフォーム側のハンドラより先に実行される）
+    event.stopPropagation();
     const video: HTMLVideoElement = clickedVideo;
     const rect = video.getBoundingClientRect();
     const bottomAreaHeight = rect.height * 0.2;
