@@ -15,6 +15,9 @@ Comfortable Videoの変更履歴です。
 - **SVGコントロールボタンの数字がつぶれる不具合を修正** (PR#15)
   - 巻き戻し・早送りボタンのSVGテキスト（10/30）に`stroke="none"`を追加し、アウトラインによるつぶれを解消
 
+- **Prime Videoで快適モード中に動的に生成された字幕オーバーレイが背面に回る不具合を修正**
+  - `startPrimeCaptionsObserver` の移動経路にも `comfort-mode-exempt` クラスの付与を追加し、z-index制限による字幕の背面化を防止
+
 ### 技術的改善
 
 - v1.2.0.mdの見出しをUnreleasedからv1.2.0に修正 (PR#14)

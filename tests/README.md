@@ -17,7 +17,8 @@ tests/
     │   └── site-detection.test.ts    # サイト判定関数のユニットテスト
     └── content/
         ├── auto-reenable.test.ts     # grace period（連続再生時の快適モード維持）のテスト
-        └── player-restore.test.ts    # プレースホルダーベースのプレーヤー復元テスト
+        ├── player-restore.test.ts    # プレースホルダーベースのプレーヤー復元テスト
+        └── prime-captions-exempt.test.ts  # Prime Video字幕オーバーレイのexemptクラス付与テスト
 ```
 
 ## テスト環境
@@ -34,6 +35,7 @@ tests/
 | `src/utils/site-detection.ts` | `tests/unit/utils/site-detection.test.ts` | 判定関数の追加・変更時 |
 | `src/content.ts`（grace period） | `tests/unit/content/auto-reenable.test.ts` | `disableComfortMode` / `checkVideoEnded` / `startGracePeriod` / `cancelGracePeriod` の変更時 |
 | `src/content.ts`（プレーヤー復元） | `tests/unit/content/player-restore.test.ts` | `maximizeVideo` / `disableComfortMode` の復元ロジック変更時 |
+| `src/content.ts`（Prime Video字幕） | `tests/unit/content/prime-captions-exempt.test.ts` | `startPrimeCaptionsObserver` / `moveCaptionsToBody` の変更時 |
 
 ## テスト更新が必要なタイミング
 

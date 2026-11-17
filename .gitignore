@@ -34,3 +34,4 @@ test-*.js
 check-*.js
 debug-*.js
 *.png
+!public/icons/*.png
