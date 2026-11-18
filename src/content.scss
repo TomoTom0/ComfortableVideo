@@ -284,6 +284,15 @@ body.comfort-mode-active {
     z-index: $z-index-captions !important;
     pointer-events: none !important;
   }
+
+  /* Prime Video現行プレイヤーの字幕ラッパーを前面に表示 */
+  /* ラッパー自身のインラインスタイル（幅・下端位置・中央寄せ）が配置を決めるため、
+     ここでは固定配置化とz-indexのみを指定する */
+  .comfort-mode-captions-wrapper {
+    position: fixed !important;
+    z-index: $z-index-captions !important;
+    pointer-events: none !important;
+  }
 }
 
 /* 動画コントロールが有効な場合 */

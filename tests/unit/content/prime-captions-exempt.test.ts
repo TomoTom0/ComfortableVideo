@@ -33,6 +33,7 @@ function cleanupComfortMode(): void {
   document.getElementById(PLAYER_PLACEHOLDER_ID)?.remove();
   document.querySelectorAll('.webPlayerContainer').forEach(c => c.remove());
   document.querySelectorAll('.atvwebplayersdk-captions-overlay').forEach(c => c.remove());
+  document.querySelectorAll('.comfort-mode-captions-wrapper').forEach(c => c.remove());
 }
 
 function setupPlayerWithVideo(): { playerContainer: HTMLDivElement; video: HTMLVideoElement } {
@@ -100,5 +101,89 @@ describe('Prime Video字幕オーバーレイのcomfort-mode-exempt付与', () =
     expect(captionsOverlay.classList.contains('comfort-mode-exempt')).toBe(false);
     // 元のプレイヤーコンテナに復元されている
     expect(captionsOverlay.parentElement).toBe(playerContainer);
+  });
+});
+
+// 現行プレイヤーの字幕構造を模擬する
+// 相対配置の祖先 > 絶対配置ラッパー > p > span > 字幕テキストspan
+function appendCurrentPlayerCaptions(playerContainer: HTMLElement): {
+  relativeAncestor: HTMLDivElement;
+  wrapper: HTMLDivElement;
+  text: HTMLSpanElement;
+} {
+  const relativeAncestor = document.createElement('div');
+  relativeAncestor.style.position = 'relative';
+  playerContainer.appendChild(relativeAncestor);
+
+  const wrapper = document.createElement('div');
+  wrapper.style.position = 'absolute';
+  relativeAncestor.appendChild(wrapper);
+
+  const p = document.createElement('p');
+  wrapper.appendChild(p);
+  const outerSpan = document.createElement('span');
+  p.appendChild(outerSpan);
+  const text = document.createElement('span');
+  text.className = 'atvwebplayersdk-captions-text';
+  text.textContent = 'テスト字幕';
+  outerSpan.appendChild(text);
+  return { relativeAncestor, wrapper, text };
+}
+
+describe('Prime Video現行プレイヤーの字幕ラッパーのcomfort-mode-exempt付与', () => {
+  beforeEach(() => {
+    cleanupComfortMode();
+  });
+
+  afterEach(() => {
+    cleanupComfortMode();
+  });
+
+  it('快適モード有効化時に既存の字幕ラッパーはbodyへ移動されexemptクラスとマーカーが付与される', () => {
+    const { playerContainer } = setupPlayerWithVideo();
+    const { wrapper } = appendCurrentPlayerCaptions(playerContainer);
+
+    hook<() => void>('__enableComfortMode')();
+    expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(true);
+
+    // maximizeVideo の字幕移動でbodyの子要素になっている
+    expect(wrapper.parentElement).toBe(document.body);
+    expect(wrapper.classList.contains('comfort-mode-exempt')).toBe(true);
+    expect(wrapper.classList.contains('comfort-mode-captions-wrapper')).toBe(true);
+  });
+
+  it('快適モード中に動的に追加された字幕ラッパーはbodyへ移動される', async () => {
+    const { playerContainer } = setupPlayerWithVideo();
+
+    hook<() => void>('__enableComfortMode')();
+    expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(true);
+
+    // 快適モード有効化後に字幕が動的に追加される（現行プレイヤーの描画を模擬）
+    const { wrapper } = appendCurrentPlayerCaptions(playerContainer);
+
+    // MutationObserver (startPrimeCaptionsObserver) が body へ移動するのを待つ
+    await vi.waitFor(() => {
+      expect(wrapper.parentElement).toBe(document.body);
+    });
+    expect(wrapper.classList.contains('comfort-mode-exempt')).toBe(true);
+    expect(wrapper.classList.contains('comfort-mode-captions-wrapper')).toBe(true);
+  });
+
+  it('快適モード解除時に字幕ラッパーは元の位置に戻りマーカーとexemptクラスが外れる', async () => {
+    const { playerContainer } = setupPlayerWithVideo();
+    const { relativeAncestor, wrapper } = appendCurrentPlayerCaptions(playerContainer);
+
+    hook<() => void>('__enableComfortMode')();
+
+    await vi.waitFor(() => {
+      expect(wrapper.parentElement).toBe(document.body);
+    });
+
+    hook<() => void>('__disableComfortModeByUser')();
+
+    // 元の相対配置の祖先に復元されている
+    expect(wrapper.parentElement).toBe(relativeAncestor);
+    expect(wrapper.classList.contains('comfort-mode-captions-wrapper')).toBe(false);
+    expect(wrapper.classList.contains('comfort-mode-exempt')).toBe(false);
   });
 });

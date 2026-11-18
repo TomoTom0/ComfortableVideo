@@ -53,6 +53,12 @@ let originalCaptionsParent: {
   nextSibling: Node | null;
 } | null = null;
 
+// Prime Video現行プレイヤーの字幕ラッパーの元の位置を記録
+let originalCaptionsContainerParent: {
+  parent: HTMLElement;
+  nextSibling: Node | null;
+} | null = null;
+
 // カーソル検出用の変数
 let cursorTimer: ReturnType<typeof setTimeout> | null = null;
 let controlsDisableTimer: ReturnType<typeof setTimeout> | null = null;
@@ -787,6 +793,9 @@ function maximizeVideo(video: HTMLVideoElement): void {
       console.log('[Comfortable Video] Prime Video captions overlay moved to body');
     }
 
+    // Prime Video現行プレイヤーの字幕ラッパーも一緒にbodyに移動
+    movePrimeCaptionsContainerToBody();
+
     // スタイルはCSSクラスで管理（インラインスタイルは使用しない）
   }
 }
@@ -1496,6 +1505,55 @@ function findPrimeCaptionsOverlay(): HTMLElement | null {
   return null;
 }
 
+// Prime Video現行プレイヤーの字幕ラッパーを検索する
+// 現行プレイヤーは .atvwebplayersdk-captions-overlay を生成せず、字幕を
+// プレイヤー階層内の .atvwebplayersdk-captions-text として描画する。
+// 字幕テキストの祖先にある位置決め（absolute / fixed）された要素が、
+// 字幕の表示位置を決めるラッパーである
+function findPrimeCaptionsContainer(): HTMLElement | null {
+  const captionsText = document.querySelector('.atvwebplayersdk-captions-text');
+  if (!captionsText) return null;
+
+  let current: HTMLElement | null = captionsText.parentElement;
+  for (let depth = 0; current && depth < 10; depth++) {
+    if (current.tagName === 'BODY') break;
+    const position = window.getComputedStyle(current).position;
+    if (position === 'absolute' || position === 'fixed') {
+      return current;
+    }
+    current = current.parentElement;
+  }
+  return null;
+}
+
+// Prime Video現行プレイヤーの字幕ラッパーをbodyに移動する
+// （字幕オーバーレイの移動と同じ扱い: 祖先のスタッキングコンテキストから独立させる）
+function movePrimeCaptionsContainerToBody(): void {
+  const container = findPrimeCaptionsContainer();
+
+  // 字幕ラッパーが存在し、かつまだbodyの子要素でない場合
+  if (container && container.parentElement && container.parentElement.tagName !== 'BODY') {
+    // 元の位置を記録（まだ記録されていない場合）
+    if (!originalCaptionsContainerParent) {
+      originalCaptionsContainerParent = {
+        parent: container.parentElement,
+        nextSibling: container.nextSibling
+      };
+      console.log('[Comfortable Video] Saved original captions container parent:', {
+        parent: originalCaptionsContainerParent.parent.tagName,
+        hasNextSibling: !!originalCaptionsContainerParent.nextSibling
+      });
+    }
+
+    // bodyに移動
+    document.body.appendChild(container);
+    // z-index制限の免除クラスと、前面表示用CSSのマーカーを付与
+    container.classList.add('comfort-mode-exempt');
+    container.classList.add('comfort-mode-captions-wrapper');
+    console.log('[Comfortable Video] Prime Video captions container moved to body');
+  }
+}
+
 // TTFCページでプレーヤーの格納先コンテナを探す
 // 元の親が失われた場合のフォールバックとして使用
 function findTTFCPlayerContainer(playerId: string): HTMLElement | null {
@@ -1564,6 +1622,9 @@ function startPrimeCaptionsObserver(): void {
       overlay.classList.add('comfort-mode-exempt');
       console.log('[Comfortable Video] Prime Video captions overlay moved to body (via observer)');
     }
+
+    // 現行プレイヤーの字幕ラッパーも同様にbodyへ移動
+    movePrimeCaptionsContainerToBody();
   };
 
   // 初回チェック
@@ -1813,6 +1874,25 @@ function disableComfortMode(): void {
         }
       }
       originalCaptionsParent = null;
+    }
+
+    // Prime Video現行プレイヤーの字幕ラッパーも元の位置に戻す
+    if (originalCaptionsContainerParent) {
+      const captionsContainer = document.querySelector('.comfort-mode-captions-wrapper') as HTMLElement | null;
+      if (captionsContainer) {
+        console.log('[Comfortable Video] Restoring Prime Video captions container to original position');
+        if (document.body.contains(originalCaptionsContainerParent.parent)) {
+          if (originalCaptionsContainerParent.nextSibling && originalCaptionsContainerParent.parent.contains(originalCaptionsContainerParent.nextSibling)) {
+            originalCaptionsContainerParent.parent.insertBefore(captionsContainer, originalCaptionsContainerParent.nextSibling);
+          } else {
+            originalCaptionsContainerParent.parent.appendChild(captionsContainer);
+          }
+        } else {
+          console.warn('[Comfortable Video] Original parent element not found. Cannot restore captions container position.');
+        }
+        captionsContainer.classList.remove('comfort-mode-captions-wrapper');
+      }
+      originalCaptionsContainerParent = null;
     }
   }
 
