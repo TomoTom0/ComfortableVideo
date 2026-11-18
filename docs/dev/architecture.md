@@ -131,7 +131,7 @@ style.textContent = `
   - プレースホルダーが見つからない場合は元の親要素情報から復元
 
 **Amazon Prime Video**:
-- `.atvwebplayersdk-hideabletopbuttons-container` へのボタン追加
+- プレーヤー上部のボタン行へのボタン追加。従来は `.atvwebplayersdk-hideabletopbuttons-container` だったが、現行プレーヤー（React UI）には存在しないため、`.atvwebplayersdk-player-container` 内のボタン配置から右側ボタン行を構造検索で特定する（従来セレクタはフォールバックとして維持）
 - `video` 要素と字幕オーバーレイ（`.atvwebplayersdk-captions-overlay`）を body に移動して z-index 競合を回避
 
 **東映特撮ファンクラブ (TTFC)**:

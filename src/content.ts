@@ -113,6 +113,58 @@ function findPrimeTopButtonsContainer(): Element | null {
       return element;
     }
   }
+  return findCurrentPrimeTopButtonsContainer();
+}
+
+// 現行Prime Videoプレーヤー（React UI）の上部ボタン行を構造から特定する
+// 従来の .atvwebplayersdk-hideabletopbuttons-container は現行UIには存在せず、
+// 上部ボタンは .atvwebplayersdk-player-container 内の行にボタン要素として並ぶ。
+// クラス名はハッシュ化されていて安定しないため、ボタンの配置から特定する:
+// プレーヤー上端付近のボタンのうち右側クラスタ全てを含み、左側ボタン
+// （プレーヤーを閉じるボタン）を含まない最も深い共通祖先がボタン行である。
+function findCurrentPrimeTopButtonsContainer(): Element | null {
+  const players = document.querySelectorAll('.atvwebplayersdk-player-container');
+  for (const player of Array.from(players)) {
+    const container = findPrimeTopButtonsContainerIn(player);
+    if (container) {
+      console.log('[Comfortable Video] Prime Video top buttons container found with structural search');
+      return container;
+    }
+  }
+  return null;
+}
+
+function findPrimeTopButtonsContainerIn(player: Element): Element | null {
+  const playerRect = player.getBoundingClientRect();
+  if (playerRect.width === 0 || playerRect.height === 0) return null;
+
+  // プレーヤー上端から100px以内にある表示中のボタンを上部ボタンとする
+  const topButtons = Array.from(player.querySelectorAll('button')).filter((button) => {
+    const rect = button.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0 && rect.top - playerRect.top < 100;
+  });
+  if (topButtons.length === 0) return null;
+
+  // プレーヤーの水平中央より右にあるものを右側クラスタとする
+  const midX = playerRect.left + playerRect.width / 2;
+  const rightButtons = topButtons.filter((button) => {
+    const rect = button.getBoundingClientRect();
+    return rect.left + rect.width / 2 > midX;
+  });
+  if (rightButtons.length === 0) return null;
+  const leftButtons = topButtons.filter((button) => !rightButtons.includes(button));
+
+  // 右側クラスタ全てを含み、左側ボタンを含まない最も深い共通祖先を行コンテナとする
+  let container: Element | null = rightButtons[0].parentElement;
+  while (container && container !== player) {
+    const current: Element = container;
+    const containsAllRight = rightButtons.every((button) => current.contains(button));
+    const containsLeft = leftButtons.some((button) => current.contains(button));
+    if (containsAllRight && !containsLeft) {
+      return current;
+    }
+    container = container.parentElement;
+  }
   return null;
 }
 
@@ -122,6 +174,15 @@ function containsPrimeTopButtonsContainer(element: Element): boolean {
     if (element.matches(selector) || element.querySelector(selector)) {
       return true;
     }
+  }
+  // 現行UI: プレーヤーコンテナ自体が追加された場合
+  if (element.querySelector('.atvwebplayersdk-player-container')) {
+    return true;
+  }
+  // 現行UI: プレーヤー内にボタン（上部ボタン行など）が追加された場合
+  const player = document.querySelector('.atvwebplayersdk-player-container');
+  if (player && player.contains(element) && (element.tagName === 'BUTTON' || element.querySelector('button'))) {
+    return true;
   }
   return false;
 }
@@ -2258,6 +2319,8 @@ try {
   (window as any).__disableComfortMode = disableComfortMode;
   (window as any).__disableComfortModeByUser = disableComfortModeByUser;
   (window as any).__getIsComfortModeActive = () => isComfortModeActive;
+  (window as any).__addPrimeControlButton = addPrimeControlButton;
+  (window as any).__findPrimeTopButtonsContainer = findPrimeTopButtonsContainer;
 } catch (e) {
   // ignore
 }

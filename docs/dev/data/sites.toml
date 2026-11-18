@@ -29,7 +29,7 @@ manifest_matches = [
   [[site.url_pattern]]
   description = "動画視聴ページ"
   example = "https://www.amazon.co.jp/gp/video/detail/xxx"
-  control_bar = "div.atvwebplayersdk-hideabletopbuttons-container"
+  control_bar = ".atvwebplayersdk-player-container 内の上部ボタン行（右側クラスタを構造検索で特定。従来の div.atvwebplayersdk-hideabletopbuttons-container は現行UIに存在せずフォールバックとしてのみ使用）"
   move_to_body = "video, .atvwebplayersdk-captions-overlay"
 
 [[site]]
