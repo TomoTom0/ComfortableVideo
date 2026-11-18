@@ -6,8 +6,29 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // import 時に Prime Video 用の初期化が実行される
 import '../../../src/content';
 
-function hook<T>(name: string): T {
-  return (window as any)[name] as T;
+declare global {
+  interface Window {
+    __getIsComfortModeActive?: () => boolean;
+    __disableComfortModeByUser?: () => void;
+    __addPrimeControlButton?: () => void;
+    __findPrimeTopButtonsContainer?: () => Element | null;
+  }
+}
+
+function isComfortModeActive(): boolean {
+  return window.__getIsComfortModeActive?.() ?? false;
+}
+
+function disableComfortModeByUser(): void {
+  window.__disableComfortModeByUser?.();
+}
+
+function addPrimeControlButton(): void {
+  window.__addPrimeControlButton?.();
+}
+
+function findPrimeTopButtonsContainer(): Element | null {
+  return window.__findPrimeTopButtonsContainer?.() ?? null;
 }
 
 interface RectSpec { x: number; y: number; width: number; height: number }
@@ -15,18 +36,9 @@ interface RectSpec { x: number; y: number; width: number; height: number }
 // happy-dom では getBoundingClientRect が常に 0 を返すため、
 // 配置ベースの検索を検証できるよう要素ごとに矩形を差し替える
 function stubRect(el: Element, rect: RectSpec): void {
-  const domRect = {
-    x: rect.x,
-    y: rect.y,
-    top: rect.y,
-    left: rect.x,
-    right: rect.x + rect.width,
-    bottom: rect.y + rect.height,
-    width: rect.width,
-    height: rect.height,
-    toJSON: () => ({}),
-  };
-  (el as any).getBoundingClientRect = () => domRect;
+  vi.spyOn(el, 'getBoundingClientRect').mockReturnValue(
+    new DOMRect(rect.x, rect.y, rect.width, rect.height),
+  );
 }
 
 function createPlayerButton(x: number): HTMLButtonElement {
@@ -49,12 +61,22 @@ function createValidVideo(parent: HTMLElement): HTMLVideoElement {
   return video;
 }
 
+interface CurrentPlayerUIOptions {
+  playerWidth?: number;
+  includeCloseButton?: boolean;
+  rightButtonXs?: number[];
+}
+
 // 現行Prime Videoプレーヤー（React UI）の上部バー構造を模擬する
 // プレーヤーコンテナ > 上部バー行 > [左グループ（閉じるボタン）, 右グループ > ボタン行]
-function setupCurrentPlayerUI(): { player: HTMLDivElement; rightRow: HTMLDivElement } {
+function setupCurrentPlayerUI(options: CurrentPlayerUIOptions = {}): {
+  player: HTMLDivElement;
+  rightRow: HTMLDivElement;
+  rightButtonWrappers: HTMLDivElement[];
+} {
   const player = document.createElement('div');
   player.className = 'atvwebplayersdk-player-container';
-  stubRect(player, { x: 0, y: 0, width: 1280, height: 900 });
+  stubRect(player, { x: 0, y: 0, width: options.playerWidth ?? 1280, height: 900 });
   document.body.appendChild(player);
 
   const topBar = document.createElement('div');
@@ -62,26 +84,30 @@ function setupCurrentPlayerUI(): { player: HTMLDivElement; rightRow: HTMLDivElem
   const row = document.createElement('div');
   topBar.appendChild(row);
 
-  const leftGroup = document.createElement('div');
-  leftGroup.appendChild(wrapButton(26));
-  row.appendChild(leftGroup);
+  if (options.includeCloseButton ?? true) {
+    const leftGroup = document.createElement('div');
+    leftGroup.appendChild(wrapButton(26));
+    row.appendChild(leftGroup);
+  }
 
   const rightGroup = document.createElement('div');
   row.appendChild(rightGroup);
   const rightRow = document.createElement('div');
   rightGroup.appendChild(rightRow);
-  rightRow.appendChild(wrapButton(1011));
-  rightRow.appendChild(wrapButton(1052));
-  rightRow.appendChild(wrapButton(1133));
+  const rightButtonWrappers = (options.rightButtonXs ?? [1011, 1052, 1133]).map((x) => {
+    const wrapper = wrapButton(x);
+    rightRow.appendChild(wrapper);
+    return wrapper;
+  });
 
   createValidVideo(player);
 
-  return { player, rightRow };
+  return { player, rightRow, rightButtonWrappers };
 }
 
 function cleanup(): void {
-  if (hook<() => boolean>('__getIsComfortModeActive')()) {
-    hook<() => void>('__disableComfortModeByUser')();
+  if (isComfortModeActive()) {
+    disableComfortModeByUser();
   }
   document.getElementById('comfort-mode-exit-button')?.remove();
   document.getElementById('comfort-mode-custom-controls')?.remove();
@@ -107,14 +133,14 @@ describe('Prime Video上部ボタン行へのコントロールボタン挿入',
   it('現行UIの構造から右側ボタン行を特定できる', () => {
     const { rightRow } = setupCurrentPlayerUI();
 
-    const found = hook<() => Element | null>('__findPrimeTopButtonsContainer')();
+    const found = findPrimeTopButtonsContainer();
     expect(found).toBe(rightRow);
   });
 
   it('現行UIでは右側ボタン行の先頭にボタンが挿入される', () => {
     const { rightRow } = setupCurrentPlayerUI();
 
-    hook<() => void>('__addPrimeControlButton')();
+    addPrimeControlButton();
 
     const inserted = rightRow.querySelector('.comfort-mode-button.prime-control');
     expect(inserted).not.toBeNull();
@@ -123,28 +149,28 @@ describe('Prime Video上部ボタン行へのコントロールボタン挿入',
 
   it('挿入されたボタンのクリックで快適モードがトグルする', () => {
     const { rightRow } = setupCurrentPlayerUI();
-    hook<() => void>('__addPrimeControlButton')();
+    addPrimeControlButton();
     const inserted = rightRow.querySelector<HTMLElement>('.comfort-mode-button.prime-control');
     expect(inserted).not.toBeNull();
 
     inserted!.click();
-    expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(true);
+    expect(isComfortModeActive()).toBe(true);
     expect(inserted!.classList.contains('active')).toBe(true);
 
     inserted!.click();
-    expect(hook<() => boolean>('__getIsComfortModeActive')()).toBe(false);
+    expect(isComfortModeActive()).toBe(false);
   });
 
   it('ボタンが再描画で削除されても再挿入できる', async () => {
     const { rightRow } = setupCurrentPlayerUI();
-    hook<() => void>('__addPrimeControlButton')();
+    addPrimeControlButton();
     const inserted = rightRow.querySelector('.comfort-mode-button.prime-control');
     expect(inserted).not.toBeNull();
 
     // Amazon側の再レンダリングでボタンが消えた状態を模擬
     inserted!.remove();
 
-    hook<() => void>('__addPrimeControlButton')();
+    addPrimeControlButton();
     await vi.waitFor(() => {
       expect(rightRow.querySelector('.comfort-mode-button.prime-control')).not.toBeNull();
     });
@@ -155,18 +181,62 @@ describe('Prime Video上部ボタン行へのコントロールボタン挿入',
     legacy.className = 'atvwebplayersdk-hideabletopbuttons-container';
     document.body.appendChild(legacy);
 
-    const found = hook<() => Element | null>('__findPrimeTopButtonsContainer')();
+    const found = findPrimeTopButtonsContainer();
     expect(found).toBe(legacy);
 
-    hook<() => void>('__addPrimeControlButton')();
+    addPrimeControlButton();
     expect(legacy.querySelector('.comfort-mode-button.prime-control')).not.toBeNull();
   });
 
   it('プレーヤーが無い場合は何も挿入されない', () => {
-    const found = hook<() => Element | null>('__findPrimeTopButtonsContainer')();
+    const found = findPrimeTopButtonsContainer();
     expect(found).toBeNull();
 
-    hook<() => void>('__addPrimeControlButton')();
+    addPrimeControlButton();
     expect(document.querySelector('.comfort-mode-button.prime-control')).toBeNull();
+  });
+
+  it('狭いプレーヤーで右側クラスタが水平中央を跨いでもボタン行を特定できる', () => {
+    const { rightRow } = setupCurrentPlayerUI({
+      playerWidth: 480,
+      rightButtonXs: [197, 243, 289, 335, 381, 427],
+    });
+
+    const found = findPrimeTopButtonsContainer();
+    expect(found).toBe(rightRow);
+
+    addPrimeControlButton();
+    expect(rightRow.querySelector('.comfort-mode-button.prime-control')).not.toBeNull();
+    expect(rightRow.firstElementChild).toBe(
+      rightRow.querySelector('.comfort-mode-button.prime-control'),
+    );
+  });
+
+  it('右側ボタンが1つだけでもそのボタンのラッパーへ挿入される', () => {
+    const { rightButtonWrappers } = setupCurrentPlayerUI({ rightButtonXs: [1011] });
+
+    const found = findPrimeTopButtonsContainer();
+    expect(found).toBe(rightButtonWrappers[0]);
+
+    addPrimeControlButton();
+    expect(rightButtonWrappers[0].querySelector('.comfort-mode-button.prime-control')).not.toBeNull();
+    expect(rightButtonWrappers[0].firstElementChild).toBe(
+      rightButtonWrappers[0].querySelector('.comfort-mode-button.prime-control'),
+    );
+  });
+
+  it('左側ボタンが無くても右側ボタン行を特定できる', () => {
+    const { rightRow } = setupCurrentPlayerUI({ includeCloseButton: false });
+
+    const found = findPrimeTopButtonsContainer();
+    expect(found).toBe(rightRow);
+  });
+
+  it('複数のプレーヤーがある場合は表示可能な後続プレーヤーも特定できる', () => {
+    setupCurrentPlayerUI({ playerWidth: 0 });
+    const { rightRow } = setupCurrentPlayerUI();
+
+    const found = findPrimeTopButtonsContainer();
+    expect(found).toBe(rightRow);
   });
 });

@@ -119,9 +119,12 @@ function findPrimeTopButtonsContainer(): Element | null {
 // 現行Prime Videoプレーヤー（React UI）の上部ボタン行を構造から特定する
 // 従来の .atvwebplayersdk-hideabletopbuttons-container は現行UIには存在せず、
 // 上部ボタンは .atvwebplayersdk-player-container 内の行にボタン要素として並ぶ。
-// クラス名はハッシュ化されていて安定しないため、ボタンの配置から特定する:
-// プレーヤー上端付近のボタンのうち右側クラスタ全てを含み、左側ボタン
-// （プレーヤーを閉じるボタン）を含まない最も深い共通祖先がボタン行である。
+// クラス名はハッシュ化されていて安定しないため、配置とDOM構造から特定する:
+// 上部ボタンを左から並べ、ボタン間の最も大きな水平間隔を左グループとの
+// 境界として右側クラスタを分ける。大きな間隔が無ければ上部ボタン全体を
+// 右側クラスタとみなす。そのクラスタ全てを含み、左グループのボタンを
+// 含まない最も深い共通祖先がボタン行である。プレーヤーの水平中央で
+// 分けないため、狭いプレーヤーで右側クラスタが中央を跨いでも特定できる。
 function findCurrentPrimeTopButtonsContainer(): Element | null {
   const players = document.querySelectorAll('.atvwebplayersdk-player-container');
   for (const player of Array.from(players)) {
@@ -145,22 +148,37 @@ function findPrimeTopButtonsContainerIn(player: Element): Element | null {
   });
   if (topButtons.length === 0) return null;
 
-  // プレーヤーの水平中央より右にあるものを右側クラスタとする
-  const midX = playerRect.left + playerRect.width / 2;
-  const rightButtons = topButtons.filter((button) => {
-    const rect = button.getBoundingClientRect();
-    return rect.left + rect.width / 2 > midX;
+  // 左グループと右側クラスタの境界は、ボタン間の最も大きな水平間隔になる
+  const sortedTopButtons = [...topButtons].sort((a, b) => {
+    return a.getBoundingClientRect().left - b.getBoundingClientRect().left;
   });
-  if (rightButtons.length === 0) return null;
-  const leftButtons = topButtons.filter((button) => !rightButtons.includes(button));
+  let splitIndex = 0;
+  let largestGap = 0;
+  for (let i = 0; i < sortedTopButtons.length - 1; i++) {
+    const currentRect = sortedTopButtons[i].getBoundingClientRect();
+    const nextRect = sortedTopButtons[i + 1].getBoundingClientRect();
+    const gap = nextRect.left - (currentRect.left + currentRect.width);
+    if (gap > largestGap) {
+      largestGap = gap;
+      splitIndex = i + 1;
+    }
+  }
+  // クラスタ内の間隔より十分に大きい間隔だけをグループ境界とみなす
+  if (largestGap < 80) {
+    splitIndex = 0;
+  }
+  const selectedRightButtons = sortedTopButtons.slice(splitIndex);
+  const otherButtons = sortedTopButtons.slice(0, splitIndex);
+  if (selectedRightButtons.length === 0) return null;
 
-  // 右側クラスタ全てを含み、左側ボタンを含まない最も深い共通祖先を行コンテナとする
-  let container: Element | null = rightButtons[0].parentElement;
+  // 右側クラスタ全てを含み、他のグループのボタンを含まない
+  // 最も深い共通祖先を行コンテナとする
+  let container: Element | null = selectedRightButtons[0].parentElement;
   while (container && container !== player) {
     const current: Element = container;
-    const containsAllRight = rightButtons.every((button) => current.contains(button));
-    const containsLeft = leftButtons.some((button) => current.contains(button));
-    if (containsAllRight && !containsLeft) {
+    const containsAllRight = selectedRightButtons.every((button) => current.contains(button));
+    const containsOther = otherButtons.some((button) => current.contains(button));
+    if (containsAllRight && !containsOther) {
       return current;
     }
     container = container.parentElement;
@@ -261,6 +279,7 @@ function updatePrimeButtonState(): void {
 // Prime Videoコントロールボタンを追加
 function addPrimeControlButton(): void {
   if (!isPrimeVideo()) return;
+  if (primeControlButton?.isConnected) return;
 
   const topButtons = findPrimeTopButtonsContainer();
   if (!topButtons) {
@@ -2319,8 +2338,20 @@ try {
   (window as any).__disableComfortMode = disableComfortMode;
   (window as any).__disableComfortModeByUser = disableComfortModeByUser;
   (window as any).__getIsComfortModeActive = () => isComfortModeActive;
-  (window as any).__addPrimeControlButton = addPrimeControlButton;
-  (window as any).__findPrimeTopButtonsContainer = findPrimeTopButtonsContainer;
+} catch (e) {
+  // ignore
+}
+
+declare global {
+  interface Window {
+    __addPrimeControlButton?: () => void;
+    __findPrimeTopButtonsContainer?: () => Element | null;
+  }
+}
+
+try {
+  window.__addPrimeControlButton = addPrimeControlButton;
+  window.__findPrimeTopButtonsContainer = findPrimeTopButtonsContainer;
 } catch (e) {
   // ignore
 }
