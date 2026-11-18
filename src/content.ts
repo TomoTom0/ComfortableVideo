@@ -785,6 +785,10 @@ function maximizeVideo(video: HTMLVideoElement): void {
       video.parentElement.insertBefore(placeholder, video);
     }
 
+    // Video.js系プレイヤーの字幕表示要素を特定しておく
+    // （動画要素をbodyへ移動した後はその祖先をたどれなくなるため、移動前に特定する）
+    const vjsCaptionsDisplay = findVjsCaptionsDisplay(video);
+
     // 動画要素をbodyに移動（親要素のスタッキングコンテキストから完全に独立）
     document.body.appendChild(video);
     video.classList.add('comfort-mode-exempt');
@@ -806,7 +810,7 @@ function maximizeVideo(video: HTMLVideoElement): void {
     movePrimeCaptionsContainerToBody();
 
     // Video.js系プレイヤーの字幕表示要素も一緒にbodyに移動
-    moveVjsCaptionsToBody();
+    moveVjsCaptionsToBody(vjsCaptionsDisplay);
 
     // スタイルはCSSクラスで管理（インラインスタイルは使用しない）
   }
@@ -1582,41 +1586,54 @@ function movePrimeCaptionsContainerToBody(): void {
   }
 }
 
+// Video.js系プレイヤーの字幕表示要素を、対象の動画が属するプレイヤーの中から検索する
+// （ページ内に別のプレイヤーがあっても、その字幕は移動対象にしない。
+//   動画の祖先をたどり、字幕表示要素を含む最も近いコンテナを対象プレイヤーとする）
+function findVjsCaptionsDisplay(video: HTMLVideoElement): HTMLElement | null {
+  let current: HTMLElement | null = video.parentElement;
+  for (let depth = 0; current && depth < 10; depth++) {
+    if (current.tagName === 'BODY') break;
+    const display = current.querySelector('.vjs-text-track-display');
+    if (display instanceof HTMLElement) {
+      return display;
+    }
+    current = current.parentElement;
+  }
+  return null;
+}
+
 // Video.js系プレイヤー（TVer等）の字幕表示要素をbodyに移動する
 // 汎用経路では動画要素だけがbodyへ移動するため、プレイヤーコンテナ内に残った
 // 字幕表示要素（.vjs-text-track-display）は快適モードのz-index制限で動画の背面に
 // 回って見えなくなる。字幕オーバーレイの移動と同じ扱いでbodyへ移す
-function moveVjsCaptionsToBody(): void {
-  const captionsDisplays = document.querySelectorAll('.vjs-text-track-display');
+// （移動対象は最大化する動画が属するプレイヤーの字幕表示要素だけに限る）
+function moveVjsCaptionsToBody(captionsDisplay: HTMLElement | null): void {
+  if (!captionsDisplay) return;
 
-  captionsDisplays.forEach((captionsDisplay) => {
-    if (!(captionsDisplay instanceof HTMLElement)) return;
+  // 既にbodyの子要素になっている場合は何もしない
+  if (!captionsDisplay.parentElement || captionsDisplay.parentElement.tagName === 'BODY') {
+    return;
+  }
 
-    // 既にbodyの子要素になっている場合は何もしない
-    if (!captionsDisplay.parentElement || captionsDisplay.parentElement.tagName === 'BODY') {
-      return;
-    }
+  // 元の位置を要素ごとに記録（まだ記録されていない場合）
+  if (!originalVjsCaptionsParents.has(captionsDisplay)) {
+    const originalParent = {
+      parent: captionsDisplay.parentElement,
+      nextSibling: captionsDisplay.nextSibling
+    };
+    originalVjsCaptionsParents.set(captionsDisplay, originalParent);
+    console.log('[Comfortable Video] Saved original Video.js captions parent:', {
+      parent: originalParent.parent.tagName,
+      hasNextSibling: !!originalParent.nextSibling
+    });
+  }
 
-    // 元の位置を要素ごとに記録（まだ記録されていない場合）
-    if (!originalVjsCaptionsParents.has(captionsDisplay)) {
-      const originalParent = {
-        parent: captionsDisplay.parentElement,
-        nextSibling: captionsDisplay.nextSibling
-      };
-      originalVjsCaptionsParents.set(captionsDisplay, originalParent);
-      console.log('[Comfortable Video] Saved original Video.js captions parent:', {
-        parent: originalParent.parent.tagName,
-        hasNextSibling: !!originalParent.nextSibling
-      });
-    }
-
-    // bodyに移動
-    document.body.appendChild(captionsDisplay);
-    // z-index制限の免除クラスと、前面表示用CSSのマーカーを付与
-    captionsDisplay.classList.add('comfort-mode-exempt');
-    captionsDisplay.classList.add('comfort-mode-vjs-captions');
-    console.log('[Comfortable Video] Video.js captions display moved to body');
-  });
+  // bodyに移動
+  document.body.appendChild(captionsDisplay);
+  // z-index制限の免除クラスと、前面表示用CSSのマーカーを付与
+  captionsDisplay.classList.add('comfort-mode-exempt');
+  captionsDisplay.classList.add('comfort-mode-vjs-captions');
+  console.log('[Comfortable Video] Video.js captions display moved to body');
 }
 
 // TTFCページでプレーヤーの格納先コンテナを探す

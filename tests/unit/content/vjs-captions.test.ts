@@ -164,6 +164,37 @@ describe('Video.js字幕表示要素の快適モードでの退避と復元', ()
     expect(document.querySelectorAll('.comfort-mode-vjs-captions').length).toBe(0);
   });
 
+  it('最大化対象外のプレイヤー（寸法ゼロでスキップされる動画）の字幕表示要素は移動されない', () => {
+    const active = setupVideoJsPlayer();
+    // 寸法ゼロの動画を持つプレイヤー: enableComfortMode でスキップされる
+    const skippedContainer = document.createElement('div');
+    skippedContainer.className = 'video-js';
+    document.body.appendChild(skippedContainer);
+    const skippedVideo = document.createElement('video');
+    skippedContainer.appendChild(skippedVideo);
+    const skippedDisplay = document.createElement('div');
+    skippedDisplay.className = 'vjs-text-track-display';
+    skippedContainer.appendChild(skippedDisplay);
+
+    enableComfortMode();
+    expect(isComfortModeActive()).toBe(true);
+
+    // 対象プレイヤーの字幕表示要素は body へ移動される
+    expect(active.trackDisplay.parentElement).toBe(document.body);
+    // 対象外プレイヤーの動画はスキップされ、字幕表示要素も元のコンテナに留まる
+    // （無関係なプレイヤーの字幕を最大化した動画の上に表示しないため）
+    expect(skippedVideo.parentElement).toBe(skippedContainer);
+    expect(skippedDisplay.parentElement).toBe(skippedContainer);
+    expect(skippedDisplay.classList.contains('comfort-mode-vjs-captions')).toBe(false);
+    expect(skippedDisplay.classList.contains('comfort-mode-exempt')).toBe(false);
+
+    disableComfortModeByUser();
+
+    expect(active.trackDisplay.parentElement).toBe(active.playerContainer);
+    expect(skippedDisplay.parentElement).toBe(skippedContainer);
+    expect(document.querySelectorAll('.comfort-mode-vjs-captions').length).toBe(0);
+  });
+
   it('vjs字幕表示要素が存在しないページでも快適モードの有効化・解除がエラーなく動作する', () => {
     // .vjs-text-track-display を持たないプレイヤーコンテナ
     const playerContainer = document.createElement('div');
