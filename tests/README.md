@@ -21,6 +21,7 @@ tests/
         ├── click-toggle.test.ts      # 動画クリックの再生/一時停止トグル（二重トグル防止）のテスト
         ├── prime-captions-exempt.test.ts  # Prime Video字幕オーバーレイのexemptクラス付与テスト
         ├── prime-top-buttons.test.ts      # Prime Video上部ボタン行へのコントロールボタン挿入テスト
+        ├── captions-controls-offset.test.ts  # カスタムコントロール表示中の字幕オフセット同期テスト
         └── vjs-captions.test.ts           # Video.js（TVer等）字幕表示要素の退避・復元テスト
 ```
 
@@ -42,6 +43,7 @@ tests/
 | `src/content.ts`（Prime Video字幕） | `tests/unit/content/prime-captions-exempt.test.ts` | `startPrimeCaptionsObserver` / `moveCaptionsToBody` の変更時 |
 | `src/content.ts`（Prime Video上部ボタン） | `tests/unit/content/prime-top-buttons.test.ts` | `findPrimeTopButtonsContainer` / `addPrimeControlButton` の変更時 |
 | `src/content.ts`（Video.js字幕） | `tests/unit/content/vjs-captions.test.ts` | `maximizeVideo` / `disableComfortMode` の Video.js 字幕処理変更時 |
+| `src/content.ts`（字幕オフセット） | `tests/unit/content/captions-controls-offset.test.ts` | `setCustomControlsHidden` / `syncCaptionsOffsetWithControls` の変更時 |
 
 ## テスト更新が必要なタイミング
 

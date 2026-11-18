@@ -23,6 +23,21 @@ let exitButton: HTMLElement | null = null;
 
 // 独自のコントロールUI要素
 let customControls: HTMLElement | null = null;
+
+// カスタムコントロールの表示状態をbodyクラスへ同期する
+// （コントロール表示中は字幕をコントロールと重ならない位置へ逃がすCSSが効く）
+function syncCaptionsOffsetWithControls(): void {
+  const controlsVisible = !!customControls && !customControls.classList.contains('hidden');
+  document.body.classList.toggle('comfort-controls-visible', controlsVisible);
+}
+
+// カスタムコントロールの表示/非表示を切り替え、字幕オフセットへ同期する
+// （hiddenクラスの付け外しは全てこの関数を通すこと）
+function setCustomControlsHidden(hidden: boolean): void {
+  if (!customControls) return;
+  customControls.classList.toggle('hidden', hidden);
+  syncCaptionsOffsetWithControls();
+}
 let controlsAutoHideTimer: ReturnType<typeof setTimeout> | null = null;
 let controlsHideOnMouseLeaveTimer: ReturnType<typeof setTimeout> | null = null;
 let isMonitoringMouseForControlsHide = false; // マウス位置を監視中かどうか
@@ -283,7 +298,8 @@ function addPrimeControlButton(): void {
 
   const topButtons = findPrimeTopButtonsContainer();
   if (!topButtons) {
-    console.log('[Comfortable Video] Prime Video top buttons container not found. Selectors tried:', PRIME_TOP_BUTTONS_SELECTORS);
+    // プレーヤーUIが非表示の間はボタン行自体が存在しないのが通常の状態のため、
+    // 見つからなくてもログは出さずに何もしない（行が戻れば監視側が再挿入する）
     return;
   }
 
@@ -450,6 +466,21 @@ function setupTTFCObserver(): void {
   setTimeout(addTTFCControlButton, 1000);
 }
 
+// Prime Videoボタンの再確認タイマー（削除検知時の再挿入試行を1回にまとめる）
+let primeButtonRecheckTimer: ReturnType<typeof setTimeout> | null = null;
+
+// ボタン削除の検知後に、少し待ってから再挿入を試みる
+// UIの表示/非表示で行ごと取り除かれている間はボタン行が存在せず、
+// 再挿入は行が戻ったタイミング（追加ノード側の監視）に任せる。
+// 行が残っているのにボタンだけが消えた場合に、この再確認が再挿入する
+function schedulePrimeButtonRecheck(): void {
+  if (primeButtonRecheckTimer) return;
+  primeButtonRecheckTimer = setTimeout(() => {
+    primeButtonRecheckTimer = null;
+    addPrimeControlButton();
+  }, 300);
+}
+
 // Prime Video用のMutationObserverを設定
 function setupPrimeObserver(): void {
   if (!isPrimeVideo()) return;
@@ -468,18 +499,15 @@ function setupPrimeObserver(): void {
         });
 
         // 挿入したボタンがAmazon側の再レンダリングで削除されたかチェック
+        // （UI非表示で行ごと取り除かれた場合も含まれるため、即時の再挿入はせず、
+        //   参照だけを外して再確認を予約する。再確認時に行が無ければ何も起きない）
         mutation.removedNodes.forEach((node) => {
-          if (primeControlButton && node === primeControlButton) {
-            console.log('[Comfortable Video] Prime Video control button was removed, re-adding...');
+          if (!primeControlButton) return;
+          const buttonRemoved = node === primeControlButton ||
+            (node.nodeType === Node.ELEMENT_NODE && (node as Element).contains(primeControlButton));
+          if (buttonRemoved) {
             primeControlButton = null;
-            setTimeout(addPrimeControlButton, 100);
-          } else if (node.nodeType === Node.ELEMENT_NODE && primeControlButton) {
-            const element = node as Element;
-            if (element.contains(primeControlButton)) {
-              console.log('[Comfortable Video] Prime Video control button container was removed, re-adding...');
-              primeControlButton = null;
-              setTimeout(addPrimeControlButton, 100);
-            }
+            schedulePrimeButtonRecheck();
           }
         });
       }
@@ -1053,7 +1081,7 @@ function handleMouseMove(event: MouseEvent): void {
       // コントロールパネル外に出た場合、まだタイマーが設定されていなければ非表示にする
       controlsHideOnMouseLeaveTimer = setTimeout(() => {
         if (customControls && currentActiveVideo && !currentActiveVideo.paused) {
-          customControls.classList.add('hidden');
+          setCustomControlsHidden(true);
           isMonitoringMouseForControlsHide = false;
         }
         controlsHideOnMouseLeaveTimer = null;
@@ -1455,7 +1483,7 @@ function showCustomControls(): void {
     }
     // 再生開始時：マウスが動画エリアから0.5秒離れるまでコントロールを表示
     if (customControls) {
-      customControls.classList.remove('hidden');
+      setCustomControlsHidden(false);
 
       // 既存のタイマーをクリア
       if (controlsHideOnMouseLeaveTimer) {
@@ -1474,7 +1502,7 @@ function showCustomControls(): void {
       const hideDelay = isMouseInVideoArea ? CONTROLS_DISABLE_TIME : CONTROLS_HIDE_DELAY;
       controlsHideOnMouseLeaveTimer = setTimeout(() => {
         if (customControls && currentActiveVideo && !currentActiveVideo.paused) {
-          customControls.classList.add('hidden');
+          setCustomControlsHidden(true);
           isMonitoringMouseForControlsHide = false;
         }
         controlsHideOnMouseLeaveTimer = null;
@@ -1491,7 +1519,7 @@ function showCustomControls(): void {
     }
     // 一時停止時はコントロールを表示
     if (customControls) {
-      customControls.classList.remove('hidden');
+      setCustomControlsHidden(false);
 
       // マウス位置監視を停止
       isMonitoringMouseForControlsHide = false;
@@ -1539,8 +1567,11 @@ function showCustomControls(): void {
 
   // 初期表示：動画が再生中の場合は非表示、一時停止中の場合は表示
   if (!video.paused) {
-    customControls.classList.add('hidden');
+    setCustomControlsHidden(true);
   }
+
+  // 字幕オフセット用のbodyクラスを初期状態に同期する
+  syncCaptionsOffsetWithControls();
 }
 
 // 時間をフォーマットする関数（mm:ss）
@@ -1558,13 +1589,13 @@ function resetControlsAutoHide(): void {
   }
 
   if (customControls) {
-    customControls.classList.remove('hidden');
+    setCustomControlsHidden(false);
 
     // 動画が一時停止中は非表示にしない
     if (currentActiveVideo && !currentActiveVideo.paused) {
       controlsAutoHideTimer = setTimeout(() => {
         if (customControls) {
-          customControls.classList.add('hidden');
+          setCustomControlsHidden(true);
         }
       }, CONTROLS_DISABLE_TIME);
     }
@@ -1573,6 +1604,7 @@ function resetControlsAutoHide(): void {
 
 // 独自のコントロールUIを削除する関数
 function hideCustomControls(): void {
+  document.body.classList.remove('comfort-controls-visible');
   if (customControls) {
     customControls.remove();
     customControls = null;
@@ -1601,13 +1633,29 @@ function findPrimeCaptionsOverlay(): HTMLElement | null {
   return null;
 }
 
+// 現在表示中の字幕テキスト要素を特定する
+// bodyへ移動済みのラッパー（.comfort-mode-captions-wrapper）内にあるテキストは
+// 移動済み要素のもの（差し替えで残った凍結字幕を含む）なので候補から外し、
+// プレイヤー階層にあるものを優先する。プレイヤー側に無い場合（全て移動済みの
+// 場合）は先頭のものを返す。文書順の先頭一致だけに頼ると、残存ラッパー内の
+// 凍結テキストを現在の字幕と誤認してしまうため、この特定方法を使う
+function findCurrentPrimeCaptionsText(): Element | null {
+  const texts = document.querySelectorAll('.atvwebplayersdk-captions-text');
+  for (const text of texts) {
+    if (!text.closest('.comfort-mode-captions-wrapper')) {
+      return text;
+    }
+  }
+  return texts.length > 0 ? texts[0] : null;
+}
+
 // Prime Video現行プレイヤーの字幕ラッパーを検索する
 // 現行プレイヤーは .atvwebplayersdk-captions-overlay を生成せず、字幕を
 // プレイヤー階層内の .atvwebplayersdk-captions-text として描画する。
 // 字幕テキストの祖先にある位置決め（absolute / fixed）された要素が、
 // 字幕の表示位置を決めるラッパーである
 function findPrimeCaptionsContainer(): HTMLElement | null {
-  const captionsText = document.querySelector('.atvwebplayersdk-captions-text');
+  const captionsText = findCurrentPrimeCaptionsText();
   if (!captionsText) return null;
 
   let current: HTMLElement | null = captionsText.parentElement;
@@ -1635,12 +1683,36 @@ function findPrimeCaptionsContainer(): HTMLElement | null {
 function movePrimeCaptionsContainerToBody(): void {
   // 既にbodyへ移動済みのラッパーの中に字幕がある場合は何もしない
   // （字幕監視の発火のたびに祖先走査とgetComputedStyleを繰り返さないため）
-  const captionsTextElement = document.querySelector('.atvwebplayersdk-captions-text');
+  const captionsTextElement = findCurrentPrimeCaptionsText();
   if (captionsTextElement && captionsTextElement.closest('.comfort-mode-captions-wrapper')) {
     return;
   }
 
   const container = findPrimeCaptionsContainer();
+
+  // プレイヤーが字幕ラッパーを差し替えた場合、前に移動したラッパーは
+  // プレイヤーから参照されない残存要素になる。新しいラッパーを移動する前に、
+  // 現在の字幕テキストを含まない旧ラッパーのうち、元の親を失われているもの、
+  // または差し替え前の字幕テキストを保持したまま残っているものを破棄し、
+  // 要素自体も取り除く（残すと古い字幕が固まったまま重なって表示され、
+  // 解除時にプレイヤーへ戻されて二重表示になってしまうため。
+  // 元の親が残っていて字幕も保持していない空のラッパーは、解除時に元の位置へ
+  // 戻す対象として残す）
+  if (container) {
+    const currentCaptionsText = container.querySelector('.atvwebplayersdk-captions-text');
+    originalCaptionsContainerParents.forEach((staleParent, staleContainer) => {
+      if (staleContainer === container) return;
+      if (!currentCaptionsText || staleContainer.contains(currentCaptionsText)) return;
+      const originalParentGone = !document.contains(staleParent.parent);
+      const holdsStaleCaptionsText =
+        staleContainer.querySelector('.atvwebplayersdk-captions-text') !== null;
+      if (originalParentGone || holdsStaleCaptionsText) {
+        staleContainer.remove();
+        originalCaptionsContainerParents.delete(staleContainer);
+        console.log('[Comfortable Video] Discarded stale Prime Video captions container (replaced by player)');
+      }
+    });
+  }
 
   // 字幕ラッパーが存在し、かつまだbodyの子要素でない場合
   if (container && container.parentElement && container.parentElement.tagName !== 'BODY') {
@@ -2042,6 +2114,9 @@ function disableComfortMode(): void {
     // （記録した要素ごとに復元する。快適モード中にラッパーが差し替えられた場合も、
     //   記録のある要素は全て元の位置へ戻し、マーカーを外す）
     if (originalCaptionsContainerParents.size > 0) {
+      // 最後に記録されたラッパーが、現在表示中の字幕を持つラッパーである
+      const recordedContainers = Array.from(originalCaptionsContainerParents.keys());
+      const lastRecordedContainer = recordedContainers[recordedContainers.length - 1];
       originalCaptionsContainerParents.forEach((originalParent, captionsContainer) => {
         if (document.contains(captionsContainer)) {
           console.log('[Comfortable Video] Restoring Prime Video captions container to original position');
@@ -2052,7 +2127,23 @@ function disableComfortMode(): void {
               originalParent.parent.appendChild(captionsContainer);
             }
           } else {
-            console.warn('[Comfortable Video] Original parent element not found. Cannot restore captions container position.');
+            // 元の親が失われている場合でも、現在の字幕テキストを含む要素は
+            // 表示中の字幕そのものなのでbodyに残す。それ以外は、差し替えで
+            // 残っただけの要素なので、警告ではなく取り除いて記録する。
+            // 現在の字幕テキストがプレイヤー側で特定できない場合（全ての字幕が
+            // 移動済みラッパー内にある場合）は、最後に移動したラッパーを
+            // 表示中のものとみなして取り除かない
+            const currentCaptionsText = findCurrentPrimeCaptionsText();
+            const currentTextCertain = !!currentCaptionsText &&
+              !currentCaptionsText.closest('.comfort-mode-captions-wrapper');
+            if (captionsContainer.parentElement === document.body &&
+                currentCaptionsText && !captionsContainer.contains(currentCaptionsText) &&
+                (currentTextCertain || captionsContainer !== lastRecordedContainer)) {
+              captionsContainer.remove();
+              console.log('[Comfortable Video] Removed stale Prime Video captions container (original parent no longer exists)');
+            } else {
+              console.warn('[Comfortable Video] Original parent element not found. Cannot restore captions container position.');
+            }
           }
         }
         captionsContainer.classList.remove('comfort-mode-captions-wrapper');

@@ -240,3 +240,68 @@ describe('Prime Video上部ボタン行へのコントロールボタン挿入',
     expect(found).toBe(rightRow);
   });
 });
+
+describe('Prime Videoボタン行の表示/非表示に伴う再挿入の抑制', () => {
+  beforeEach(() => {
+    cleanup();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('ボタン行ごと取り除かれた場合は再挿入ログを出さず、行が戻ると再挿入される', async () => {
+    const { rightRow } = setupCurrentPlayerUI();
+    addPrimeControlButton();
+    expect(rightRow.querySelector('.comfort-mode-button.prime-control')).not.toBeNull();
+
+    // ボタン行（左グループと右グループを含む行）を取り除く = UI非表示のアンマウントを模擬
+    const row = rightRow.parentElement!.parentElement!;
+    const topBar = row.parentElement!;
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      row.remove();
+
+      // 再確認タイマー（300ms）が発火しても、行が無ければ再挿入もログも起きない
+      await new Promise(r => setTimeout(r, 600));
+      const noisy = logSpy.mock.calls.filter(args =>
+        String(args[0]).includes('re-adding') || String(args[0]).includes('not found'));
+      expect(noisy.length).toBe(0);
+      expect(document.querySelector('.comfort-mode-button.prime-control')).toBeNull();
+
+      // 行が戻る（UI再表示）を模擬すると、追加ノード側の監視が再挿入する
+      topBar.appendChild(row);
+      await vi.waitFor(() => {
+        expect(rightRow.querySelector('.comfort-mode-button.prime-control')).not.toBeNull();
+      });
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
+
+  it('ボタンだけが削除された場合は、行が残っていれば再挿入される', async () => {
+    const { rightRow } = setupCurrentPlayerUI();
+    addPrimeControlButton();
+    const inserted = rightRow.querySelector('.comfort-mode-button.prime-control');
+    expect(inserted).not.toBeNull();
+
+    inserted!.remove();
+
+    // 削除検知後の再確認（300ms）で再挿入される
+    await vi.waitFor(() => {
+      expect(rightRow.querySelector('.comfort-mode-button.prime-control')).not.toBeNull();
+    });
+  });
+
+  it('プレーヤーが無い場合はnot foundログを出さない', () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      addPrimeControlButton();
+      const noisy = logSpy.mock.calls.filter(args => String(args[0]).includes('not found'));
+      expect(noisy.length).toBe(0);
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
+});

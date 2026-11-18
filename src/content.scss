@@ -308,6 +308,19 @@ body.comfort-mode-active {
   }
 }
 
+/* カスタムコントロール表示中は、字幕がコントロールバーと重ならないよう上に逃がす */
+/* コントロールバーは bottom: 60px に高さ約70pxで配置される（上端は下から約130px）。
+   字幕は画面下端付近に表示されるため、バーが見えている間はその分だけ字幕を
+   押し上げる。コントロールの表示状態はJSが body.comfort-controls-visible で同期する */
+body.comfort-mode-active.comfort-controls-visible {
+  .atvwebplayersdk-captions-overlay,
+  [class*="captions-overlay"],
+  .comfort-mode-captions-wrapper,
+  .comfort-mode-vjs-captions {
+    translate: 0 -150px;
+  }
+}
+
 /* 動画コントロールが有効な場合 */
 body.comfort-mode-active.video-controls-enabled {
   video {
