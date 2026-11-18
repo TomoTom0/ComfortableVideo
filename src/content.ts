@@ -158,6 +158,17 @@ function applySettings(): void {
   // プレーヤー内ボタンの表示がオフの場合は既存ボタンを取り除く
   if (!settings.showInlineButton) {
     removeSiteControlButtons();
+  } else {
+    // 表示が有効な場合は、設定変更で取り除かれたボタンを再追加する
+    // （サイト監視は対象ノードの追加時にしか再挿入を試みないため、
+    //   オフ→オンの切り替えだけでは開いたままのプレーヤーにボタンが戻らない）
+    if (isYouTube()) {
+      addYouTubeControlButton();
+    } else if (isPrimeVideo()) {
+      addPrimeControlButton();
+    } else if (isTTFC()) {
+      addTTFCControlButton();
+    }
   }
 
   // 解除ボタンの透明度を現在のマウス位置で再適用する

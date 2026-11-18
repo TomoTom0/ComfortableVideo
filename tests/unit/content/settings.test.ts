@@ -198,6 +198,29 @@ describe('設定の読み込みと反映 (d-5)', () => {
     expect(rightControls.querySelector('.comfort-mode-button')).toBeNull();
   });
 
+  it('showInlineButton を再び有効にすると、ボタンが自動で再追加される', async () => {
+    const rightControls = createRightControls();
+    hook<() => void>('__addYouTubeControlButton')();
+    expect(rightControls.querySelector('.comfort-mode-button')).not.toBeNull();
+
+    await applyStoredSettings({ showInlineButton: false });
+    expect(rightControls.querySelector('.comfort-mode-button')).toBeNull();
+
+    // ボタン追加関数を明示的に呼ばなくても、設定の再適用で再追加される
+    await applyStoredSettings({ showInlineButton: true });
+    expect(rightControls.querySelector('.comfort-mode-button')).not.toBeNull();
+  });
+
+  it('enableYoutube を再び有効にすると、ボタンが自動で再追加される', async () => {
+    const rightControls = createRightControls();
+    await applyStoredSettings({ enableYoutube: false });
+    hook<() => void>('__addYouTubeControlButton')();
+    expect(rightControls.querySelector('.comfort-mode-button')).toBeNull();
+
+    await applyStoredSettings({ enableYoutube: true });
+    expect(rightControls.querySelector('.comfort-mode-button')).not.toBeNull();
+  });
+
   it('enableYoutube が無効な場合、有効化されずボタンも追加されない', async () => {
     await applyStoredSettings({ enableYoutube: false });
     createPlayerWithVideo(true);
