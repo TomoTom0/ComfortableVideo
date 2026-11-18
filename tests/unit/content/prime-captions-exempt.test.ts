@@ -309,3 +309,82 @@ describe('Prime Video現行プレイヤーの字幕ラッパーのcomfort-mode-e
     expect(inner.classList.contains('comfort-mode-captions-wrapper')).toBe(false);
   });
 });
+
+describe('Prime Video字幕ラッパーの差し替えで残る残存ラッパーの破棄', () => {
+  beforeEach(() => {
+    cleanupComfortMode();
+  });
+
+  afterEach(() => {
+    cleanupComfortMode();
+  });
+
+  it('元の親ごと差し替えられた旧ラッパーは破棄され、新ラッパーのみが復元される', async () => {
+    const { playerContainer } = setupPlayerWithVideo();
+    const first = appendCurrentPlayerCaptions(playerContainer);
+
+    hook<() => void>('__enableComfortMode')();
+
+    await vi.waitFor(() => {
+      expect(first.wrapper.parentElement).toBe(document.body);
+    });
+
+    // プレイヤー側の再生成を模擬: 旧ラッパーの元の親（祖先ごと）が失われ、
+    // 新しいラッパーがプレイヤー階層に現れる（シーク時等の実際の差し替え）
+    first.relativeAncestor.remove();
+    const second = appendCurrentPlayerCaptions(playerContainer);
+
+    // observer が新しいラッパーをbodyへ移動するのを待つ
+    await vi.waitFor(() => {
+      expect(second.wrapper.parentElement).toBe(document.body);
+    });
+
+    // 旧ラッパーは残存要素として破棄され、body内のラッパーは新ラッパーだけになる
+    expect(document.contains(first.wrapper)).toBe(false);
+    expect(document.querySelectorAll('.comfort-mode-captions-wrapper').length).toBe(1);
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      hook<() => void>('__disableComfortModeByUser')();
+
+      // 新ラッパーは元の位置へ復元され、復元できないという警告は出ない
+      expect(second.wrapper.parentElement).toBe(second.relativeAncestor);
+      const restoreWarns = warnSpy.mock.calls.filter(
+        args => String(args[0]).includes('Cannot restore captions container position'),
+      );
+      expect(restoreWarns.length).toBe(0);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('解除直前に差し替えられた旧ラッパーは、復元時に警告ではなく取り除かれる', async () => {
+    const { playerContainer } = setupPlayerWithVideo();
+    const first = appendCurrentPlayerCaptions(playerContainer);
+
+    hook<() => void>('__enableComfortMode')();
+
+    await vi.waitFor(() => {
+      expect(first.wrapper.parentElement).toBe(document.body);
+    });
+
+    // observer のコールバックが走る前に、同期的に差し替えと解除を行う
+    // （移動時の破棄をすり抜けて記録が残った場合の復元側の後始末を検証する）
+    first.relativeAncestor.remove();
+    appendCurrentPlayerCaptions(playerContainer);
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      hook<() => void>('__disableComfortModeByUser')();
+
+      // 旧ラッパーは残存要素として取り除かれ、復元できないという警告は出ない
+      expect(document.contains(first.wrapper)).toBe(false);
+      const restoreWarns = warnSpy.mock.calls.filter(
+        args => String(args[0]).includes('Cannot restore captions container position'),
+      );
+      expect(restoreWarns.length).toBe(0);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+});
