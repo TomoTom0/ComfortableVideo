@@ -293,6 +293,19 @@ body.comfort-mode-active {
     z-index: $z-index-captions !important;
     pointer-events: none !important;
   }
+
+  /* Video.js系プレイヤー（TVer等）の字幕表示要素を前面に表示 */
+  /* bodyへ移動した字幕表示要素を、最大化された動画（全面固定）と同じ全面に
+     固定し、字幕用のz-indexで動画より前面に出す */
+  .comfort-mode-vjs-captions {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: $z-index-captions !important;
+    pointer-events: none !important;
+  }
 }
 
 /* 動画コントロールが有効な場合 */

@@ -19,7 +19,8 @@ tests/
         ├── auto-reenable.test.ts     # grace period（連続再生時の快適モード維持）のテスト
         ├── player-restore.test.ts    # プレースホルダーベースのプレーヤー復元テスト
         ├── click-toggle.test.ts      # 動画クリックの再生/一時停止トグル（二重トグル防止）のテスト
-        └── prime-captions-exempt.test.ts  # Prime Video字幕オーバーレイのexemptクラス付与テスト
+        ├── prime-captions-exempt.test.ts  # Prime Video字幕オーバーレイのexemptクラス付与テスト
+        └── vjs-captions.test.ts           # Video.js（TVer等）字幕表示要素の退避・復元テスト
 ```
 
 ## テスト環境
@@ -38,6 +39,7 @@ tests/
 | `src/content.ts`（プレーヤー復元） | `tests/unit/content/player-restore.test.ts` | `maximizeVideo` / `disableComfortMode` の復元ロジック変更時 |
 | `src/content.ts`（クリック処理） | `tests/unit/content/click-toggle.test.ts` | `handleClick` / `startCursorDetection` の変更時 |
 | `src/content.ts`（Prime Video字幕） | `tests/unit/content/prime-captions-exempt.test.ts` | `startPrimeCaptionsObserver` / `moveCaptionsToBody` の変更時 |
+| `src/content.ts`（Video.js字幕） | `tests/unit/content/vjs-captions.test.ts` | `maximizeVideo` / `disableComfortMode` の Video.js 字幕処理変更時 |
 
 ## テスト更新が必要なタイミング
 

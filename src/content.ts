@@ -60,6 +60,14 @@ const originalCaptionsContainerParents = new Map<HTMLElement, {
   nextSibling: Node | null;
 }>();
 
+// Video.js系プレイヤー（TVer等）の字幕表示要素の元の位置を要素ごとに記録
+// （動画要素だけがbodyへ移動する経路では字幕表示要素が元のコンテナに残るため、
+//   要素ごとに元の位置を記録して一緒にbodyへ移動し、解除時に復元する）
+const originalVjsCaptionsParents = new Map<HTMLElement, {
+  parent: HTMLElement;
+  nextSibling: Node | null;
+}>();
+
 // カーソル検出用の変数
 let cursorTimer: ReturnType<typeof setTimeout> | null = null;
 let controlsDisableTimer: ReturnType<typeof setTimeout> | null = null;
@@ -796,6 +804,9 @@ function maximizeVideo(video: HTMLVideoElement): void {
 
     // Prime Video現行プレイヤーの字幕ラッパーも一緒にbodyに移動
     movePrimeCaptionsContainerToBody();
+
+    // Video.js系プレイヤーの字幕表示要素も一緒にbodyに移動
+    moveVjsCaptionsToBody();
 
     // スタイルはCSSクラスで管理（インラインスタイルは使用しない）
   }
@@ -1571,6 +1582,43 @@ function movePrimeCaptionsContainerToBody(): void {
   }
 }
 
+// Video.js系プレイヤー（TVer等）の字幕表示要素をbodyに移動する
+// 汎用経路では動画要素だけがbodyへ移動するため、プレイヤーコンテナ内に残った
+// 字幕表示要素（.vjs-text-track-display）は快適モードのz-index制限で動画の背面に
+// 回って見えなくなる。字幕オーバーレイの移動と同じ扱いでbodyへ移す
+function moveVjsCaptionsToBody(): void {
+  const captionsDisplays = document.querySelectorAll('.vjs-text-track-display');
+
+  captionsDisplays.forEach((captionsDisplay) => {
+    if (!(captionsDisplay instanceof HTMLElement)) return;
+
+    // 既にbodyの子要素になっている場合は何もしない
+    if (!captionsDisplay.parentElement || captionsDisplay.parentElement.tagName === 'BODY') {
+      return;
+    }
+
+    // 元の位置を要素ごとに記録（まだ記録されていない場合）
+    if (!originalVjsCaptionsParents.has(captionsDisplay)) {
+      const originalParent = {
+        parent: captionsDisplay.parentElement,
+        nextSibling: captionsDisplay.nextSibling
+      };
+      originalVjsCaptionsParents.set(captionsDisplay, originalParent);
+      console.log('[Comfortable Video] Saved original Video.js captions parent:', {
+        parent: originalParent.parent.tagName,
+        hasNextSibling: !!originalParent.nextSibling
+      });
+    }
+
+    // bodyに移動
+    document.body.appendChild(captionsDisplay);
+    // z-index制限の免除クラスと、前面表示用CSSのマーカーを付与
+    captionsDisplay.classList.add('comfort-mode-exempt');
+    captionsDisplay.classList.add('comfort-mode-vjs-captions');
+    console.log('[Comfortable Video] Video.js captions display moved to body');
+  });
+}
+
 // TTFCページでプレーヤーの格納先コンテナを探す
 // 元の親が失われた場合のフォールバックとして使用
 function findTTFCPlayerContainer(playerId: string): HTMLElement | null {
@@ -1913,6 +1961,27 @@ function disableComfortMode(): void {
         captionsContainer.classList.remove('comfort-mode-captions-wrapper');
       });
       originalCaptionsContainerParents.clear();
+    }
+
+    // Video.js系プレイヤーの字幕表示要素も元の位置に戻す
+    // （記録した要素ごとに復元する）
+    if (originalVjsCaptionsParents.size > 0) {
+      originalVjsCaptionsParents.forEach((originalParent, captionsDisplay) => {
+        if (document.contains(captionsDisplay)) {
+          console.log('[Comfortable Video] Restoring Video.js captions display to original position');
+          if (document.body.contains(originalParent.parent)) {
+            if (originalParent.nextSibling && originalParent.parent.contains(originalParent.nextSibling)) {
+              originalParent.parent.insertBefore(captionsDisplay, originalParent.nextSibling);
+            } else {
+              originalParent.parent.appendChild(captionsDisplay);
+            }
+          } else {
+            console.warn('[Comfortable Video] Original parent element not found. Cannot restore Video.js captions display position.');
+          }
+        }
+        captionsDisplay.classList.remove('comfort-mode-vjs-captions');
+      });
+      originalVjsCaptionsParents.clear();
     }
   }
 
