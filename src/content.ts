@@ -1633,13 +1633,29 @@ function findPrimeCaptionsOverlay(): HTMLElement | null {
   return null;
 }
 
+// 現在表示中の字幕テキスト要素を特定する
+// bodyへ移動済みのラッパー（.comfort-mode-captions-wrapper）内にあるテキストは
+// 移動済み要素のもの（差し替えで残った凍結字幕を含む）なので候補から外し、
+// プレイヤー階層にあるものを優先する。プレイヤー側に無い場合（全て移動済みの
+// 場合）は先頭のものを返す。文書順の先頭一致だけに頼ると、残存ラッパー内の
+// 凍結テキストを現在の字幕と誤認してしまうため、この特定方法を使う
+function findCurrentPrimeCaptionsText(): Element | null {
+  const texts = document.querySelectorAll('.atvwebplayersdk-captions-text');
+  for (const text of texts) {
+    if (!text.closest('.comfort-mode-captions-wrapper')) {
+      return text;
+    }
+  }
+  return texts.length > 0 ? texts[0] : null;
+}
+
 // Prime Video現行プレイヤーの字幕ラッパーを検索する
 // 現行プレイヤーは .atvwebplayersdk-captions-overlay を生成せず、字幕を
 // プレイヤー階層内の .atvwebplayersdk-captions-text として描画する。
 // 字幕テキストの祖先にある位置決め（absolute / fixed）された要素が、
 // 字幕の表示位置を決めるラッパーである
 function findPrimeCaptionsContainer(): HTMLElement | null {
-  const captionsText = document.querySelector('.atvwebplayersdk-captions-text');
+  const captionsText = findCurrentPrimeCaptionsText();
   if (!captionsText) return null;
 
   let current: HTMLElement | null = captionsText.parentElement;
@@ -1667,7 +1683,7 @@ function findPrimeCaptionsContainer(): HTMLElement | null {
 function movePrimeCaptionsContainerToBody(): void {
   // 既にbodyへ移動済みのラッパーの中に字幕がある場合は何もしない
   // （字幕監視の発火のたびに祖先走査とgetComputedStyleを繰り返さないため）
-  const captionsTextElement = document.querySelector('.atvwebplayersdk-captions-text');
+  const captionsTextElement = findCurrentPrimeCaptionsText();
   if (captionsTextElement && captionsTextElement.closest('.comfort-mode-captions-wrapper')) {
     return;
   }
@@ -1676,15 +1692,21 @@ function movePrimeCaptionsContainerToBody(): void {
 
   // プレイヤーが字幕ラッパーを差し替えた場合、前に移動したラッパーは
   // プレイヤーから参照されない残存要素になる。新しいラッパーを移動する前に、
-  // 現在の字幕テキストを含まず、元の親も既に失われている旧ラッパーは
-  // 破棄し、要素自体も取り除く（残すと古い字幕が固まったまま重なって表示され、
-  // 解除時にも復元できない記録として残ってしまうため）
+  // 現在の字幕テキストを含まない旧ラッパーのうち、元の親を失われているもの、
+  // または差し替え前の字幕テキストを保持したまま残っているものを破棄し、
+  // 要素自体も取り除く（残すと古い字幕が固まったまま重なって表示され、
+  // 解除時にプレイヤーへ戻されて二重表示になってしまうため。
+  // 元の親が残っていて字幕も保持していない空のラッパーは、解除時に元の位置へ
+  // 戻す対象として残す）
   if (container) {
-    const currentCaptionsText = document.querySelector('.atvwebplayersdk-captions-text');
+    const currentCaptionsText = container.querySelector('.atvwebplayersdk-captions-text');
     originalCaptionsContainerParents.forEach((staleParent, staleContainer) => {
-      if (staleContainer !== container &&
-          currentCaptionsText && !staleContainer.contains(currentCaptionsText) &&
-          !document.contains(staleParent.parent)) {
+      if (staleContainer === container) return;
+      if (!currentCaptionsText || staleContainer.contains(currentCaptionsText)) return;
+      const originalParentGone = !document.contains(staleParent.parent);
+      const holdsStaleCaptionsText =
+        staleContainer.querySelector('.atvwebplayersdk-captions-text') !== null;
+      if (originalParentGone || holdsStaleCaptionsText) {
         staleContainer.remove();
         originalCaptionsContainerParents.delete(staleContainer);
         console.log('[Comfortable Video] Discarded stale Prime Video captions container (replaced by player)');
@@ -2092,6 +2114,9 @@ function disableComfortMode(): void {
     // （記録した要素ごとに復元する。快適モード中にラッパーが差し替えられた場合も、
     //   記録のある要素は全て元の位置へ戻し、マーカーを外す）
     if (originalCaptionsContainerParents.size > 0) {
+      // 最後に記録されたラッパーが、現在表示中の字幕を持つラッパーである
+      const recordedContainers = Array.from(originalCaptionsContainerParents.keys());
+      const lastRecordedContainer = recordedContainers[recordedContainers.length - 1];
       originalCaptionsContainerParents.forEach((originalParent, captionsContainer) => {
         if (document.contains(captionsContainer)) {
           console.log('[Comfortable Video] Restoring Prime Video captions container to original position');
@@ -2104,10 +2129,16 @@ function disableComfortMode(): void {
           } else {
             // 元の親が失われている場合でも、現在の字幕テキストを含む要素は
             // 表示中の字幕そのものなのでbodyに残す。それ以外は、差し替えで
-            // 残っただけの要素なので、警告ではなく取り除いて記録する
-            const currentCaptionsText = document.querySelector('.atvwebplayersdk-captions-text');
+            // 残っただけの要素なので、警告ではなく取り除いて記録する。
+            // 現在の字幕テキストがプレイヤー側で特定できない場合（全ての字幕が
+            // 移動済みラッパー内にある場合）は、最後に移動したラッパーを
+            // 表示中のものとみなして取り除かない
+            const currentCaptionsText = findCurrentPrimeCaptionsText();
+            const currentTextCertain = !!currentCaptionsText &&
+              !currentCaptionsText.closest('.comfort-mode-captions-wrapper');
             if (captionsContainer.parentElement === document.body &&
-                currentCaptionsText && !captionsContainer.contains(currentCaptionsText)) {
+                currentCaptionsText && !captionsContainer.contains(currentCaptionsText) &&
+                (currentTextCertain || captionsContainer !== lastRecordedContainer)) {
               captionsContainer.remove();
               console.log('[Comfortable Video] Removed stale Prime Video captions container (original parent no longer exists)');
             } else {

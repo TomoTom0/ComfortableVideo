@@ -388,3 +388,58 @@ describe('Prime Video字幕ラッパーの差し替えで残る残存ラッパ�
     }
   });
 });
+
+describe('Prime Video字幕ラッパーのインプレース差し替えで残る残存ラッパーの破棄', () => {
+  beforeEach(() => {
+    cleanupComfortMode();
+  });
+
+  afterEach(() => {
+    cleanupComfortMode();
+  });
+
+  it('元の親が残っていても、差し替え前の字幕を保持した旧ラッパーは破棄される', async () => {
+    const { playerContainer } = setupPlayerWithVideo();
+    const first = appendCurrentPlayerCaptions(playerContainer);
+
+    hook<() => void>('__enableComfortMode')();
+
+    await vi.waitFor(() => {
+      expect(first.wrapper.parentElement).toBe(document.body);
+    });
+
+    // インプレース差し替えの模擬: 元の親（relativeAncestor）は残したまま、
+    // 同じ親の中に新しいラッパーが現れる。旧ラッパーは字幕を保持したまま
+    // body に残っている
+    const secondWrapper = document.createElement('div');
+    secondWrapper.style.position = 'absolute';
+    const secondText = document.createElement('span');
+    secondText.className = 'atvwebplayersdk-captions-text';
+    secondText.textContent = '新しい字幕テキスト';
+    secondWrapper.appendChild(secondText);
+    first.relativeAncestor.appendChild(secondWrapper);
+
+    // observer が新しいラッパーをbodyへ移動するのを待つ
+    await vi.waitFor(() => {
+      expect(secondWrapper.parentElement).toBe(document.body);
+    });
+
+    // 旧ラッパーは字幕を保持した残存要素として破棄される
+    expect(document.contains(first.wrapper)).toBe(false);
+    expect(document.querySelectorAll('.comfort-mode-captions-wrapper').length).toBe(1);
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      hook<() => void>('__disableComfortModeByUser')();
+
+      // 新ラッパーは元の親へ復元され、復元できないという警告は出ない
+      expect(secondWrapper.parentElement).toBe(first.relativeAncestor);
+      const restoreWarns = warnSpy.mock.calls.filter(
+        args => String(args[0]).includes('Cannot restore captions container position'),
+      );
+      expect(restoreWarns.length).toBe(0);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+});

@@ -1,5 +1,6 @@
 // @vitest-environment-options { "url": "https://www.amazon.co.jp/gp/video/detail" }
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 
 // content.ts をインポート（Chrome mock は tests/setup.ts で設定済み）
 // カスタムコントロールの表示状態と字幕オフセット用bodyクラスの同期を検証する
@@ -99,5 +100,16 @@ describe('カスタムコントロールの表示状態と字幕オフセット�
 
     expect(document.getElementById('comfort-mode-custom-controls')).toBeNull();
     expect(document.body.classList.contains('comfort-controls-visible')).toBe(false);
+  });
+});
+
+describe('字幕オフセットのTSとSCSSの契約', () => {
+  it('content.scss に comfort-controls-visible の字幕オフセットルールが存在する', () => {
+    // happy-dom はスタイルシートを読み込まないため、クラス名の対応は
+    // このテストで固定する（片方だけ改名すると字幕オフセットが無言で死ぬ）
+    const scss = readFileSync('src/content.scss', 'utf-8');
+    expect(scss).toContain('body.comfort-mode-active.comfort-controls-visible');
+    expect(scss).toContain('.comfort-mode-captions-wrapper');
+    expect(scss).toContain('.comfort-mode-vjs-captions');
   });
 });
