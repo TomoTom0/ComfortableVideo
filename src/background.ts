@@ -43,6 +43,16 @@ chrome.runtime.onInstalled.addListener(() => {
   createContextMenus();
 });
 
+// 設定が変更されたらコンテキストメニューを作り直す
+// （オプションページの「リセット」はメッセージを送らないため、
+//   メニュー表示に影響するキーの変更は storage の変更イベントでも追随する）
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'sync') return;
+  if ('showContextMenu' in changes || 'showVideoContextMenu' in changes) {
+    void createContextMenus();
+  }
+});
+
 // Content Scriptを動的に注入する関数
 async function injectContentScript(tabId: number): Promise<void> {
   try {

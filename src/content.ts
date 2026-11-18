@@ -88,8 +88,105 @@ let cursorTimer: ReturnType<typeof setTimeout> | null = null;
 let controlsDisableTimer: ReturnType<typeof setTimeout> | null = null;
 let isVideoControlsEnabled = false;
 let lastIsInVideoArea = false; // 前回の動画エリア状態を記録
-const HOVER_DETECTION_TIME = 2000; // 2秒間カーソルが下部にあると検出
-const CONTROLS_DISABLE_TIME = 3000; // 3秒間動画から離れるとコントロール無効化
+// 拡張機能の設定（オプションページで変更され、chrome.storage.sync に保存される）
+interface ComfortModeSettings {
+  hoverDetectionTime: number; // 下部ホバーからコントロール有効化までの時間（ミリ秒）
+  controlsDisableTime: number; // 動画から離れてコントロール無効化までの時間（ミリ秒）
+  showInlineButton: boolean; // プレーヤー内に快適モードボタンを表示するか
+  pausedControlsEnabled: boolean; // 一時停止中にホバー検出なしでコントロールを有効化するか
+  showContextMenu: boolean; // 右クリックメニュー（全般）を表示するか ※background側で使用
+  showVideoContextMenu: boolean; // 右クリックメニュー（動画）を表示するか ※background側で使用
+  enableYoutube: boolean; // YouTubeで快適モードを有効にするか
+  enablePrimeVideo: boolean; // Prime Videoで快適モードを有効にするか
+  enableTTFC: boolean; // 東映特撮ファンクラブで快適モードを有効にするか
+  enableAllSites: boolean; // その他のサイトで快適モードを有効にするか
+  exitButtonOpacity: number; // 解除ボタンの透明度（パーセント）
+}
+
+const DEFAULT_SETTINGS: ComfortModeSettings = {
+  hoverDetectionTime: 2000,
+  controlsDisableTime: 3000,
+  showInlineButton: true,
+  pausedControlsEnabled: true,
+  showContextMenu: true,
+  showVideoContextMenu: true,
+  enableYoutube: true,
+  enablePrimeVideo: true,
+  enableTTFC: true,
+  enableAllSites: true,
+  exitButtonOpacity: 20
+};
+
+// 現在有効な設定（起動時にstorageから読み込み、変更のたびに更新される）
+let settings: ComfortModeSettings = { ...DEFAULT_SETTINGS };
+
+// 現在のサイトで快適モードが有効かどうか（サイト別設定）
+function isSiteEnabled(): boolean {
+  if (isYouTube()) return settings.enableYoutube;
+  if (isPrimeVideo()) return settings.enablePrimeVideo;
+  if (isTTFC()) return settings.enableTTFC;
+  return settings.enableAllSites;
+}
+
+// サイト別コントロールボタンを全て取り除く
+function removeSiteControlButtons(): void {
+  if (youtubeControlButton) {
+    youtubeControlButton.remove();
+    youtubeControlButton = null;
+  }
+  if (primeControlButton) {
+    primeControlButton.remove();
+    primeControlButton = null;
+  }
+  if (ttfcControlButton) {
+    ttfcControlButton.remove();
+    ttfcControlButton = null;
+  }
+}
+
+// 設定を現在の状態へ反映する
+function applySettings(): void {
+  // 現在のサイトが無効化された場合は快適モードを解除し、ボタンも取り除く
+  if (!isSiteEnabled()) {
+    if (isComfortModeActive) {
+      disableComfortMode();
+    }
+    removeSiteControlButtons();
+    return;
+  }
+
+  // プレーヤー内ボタンの表示がオフの場合は既存ボタンを取り除く
+  if (!settings.showInlineButton) {
+    removeSiteControlButtons();
+  } else {
+    // 表示が有効な場合は、設定変更で取り除かれたボタンを再追加する
+    // （サイト監視は対象ノードの追加時にしか再挿入を試みないため、
+    //   オフ→オンの切り替えだけでは開いたままのプレーヤーにボタンが戻らない）
+    if (isYouTube()) {
+      addYouTubeControlButton();
+    } else if (isPrimeVideo()) {
+      addPrimeControlButton();
+    } else if (isTTFC()) {
+      addTTFCControlButton();
+    }
+  }
+
+  // 解除ボタンの透明度を現在のマウス位置で再適用する
+  if (exitButton) {
+    updateExitButtonOpacity(lastIsInVideoArea);
+  }
+}
+
+// chrome.storage.sync から設定を読み込んで反映する
+async function loadSettings(): Promise<void> {
+  try {
+    const stored = await chrome.storage.sync.get({ ...DEFAULT_SETTINGS });
+    settings = { ...DEFAULT_SETTINGS, ...(stored as Partial<ComfortModeSettings>) };
+  } catch (error) {
+    console.warn('[Comfortable Video] Failed to load settings; using defaults.', error);
+  }
+  applySettings();
+}
 const CONTROLS_HIDE_DELAY = 500; // カスタムコントロールパネル外に出てから非表示になるまでの時間
 const VIDEO_END_GRACE_PERIOD = 5000; // 動画終了後、次の動画再生を待つ猶予時間
 
@@ -236,6 +333,7 @@ function updateYouTubeButtonState(): void {
 // YouTubeコントロールボタンを追加
 function addYouTubeControlButton(): void {
   if (!isYouTube()) return;
+  if (!settings.showInlineButton || !settings.enableYoutube) return;
 
   const rightControls = document.querySelector('.ytp-right-controls');
   if (!rightControls) return;
@@ -294,6 +392,7 @@ function updatePrimeButtonState(): void {
 // Prime Videoコントロールボタンを追加
 function addPrimeControlButton(): void {
   if (!isPrimeVideo()) return;
+  if (!settings.showInlineButton || !settings.enablePrimeVideo) return;
   if (primeControlButton?.isConnected) return;
 
   const topButtons = findPrimeTopButtonsContainer();
@@ -373,6 +472,7 @@ function updateTTFCButtonState(): void {
 // TTFCコントロールボタンを追加
 function addTTFCControlButton(): void {
   if (!isTTFC()) return;
+  if (!settings.showInlineButton || !settings.enableTTFC) return;
 
   let controlBar: Element | null;
   let fullscreenBtn: Element | null;
@@ -687,6 +787,12 @@ function debugStackingContext(element: HTMLElement): void {
 // 動画要素を検出し、快適モードを適用する関数
 function enableComfortMode(): void {
   console.log('[Comfortable Video] enableComfortMode() called');
+
+  // サイト別設定で無効化されているサイトでは有効化しない
+  if (!isSiteEnabled()) {
+    console.log('[Comfortable Video] Comfort mode is disabled for this site in settings');
+    return;
+  }
   const videos = document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>;
   console.log('[Comfortable Video] Found video elements:', videos.length);
 
@@ -797,6 +903,13 @@ function maximizeVideo(video: HTMLVideoElement): void {
   if (isYouTube()) {
     const player = document.getElementById('movie_player');
     if (player) {
+      // 既に最大化済み（body直下へ移動済み）の場合は何もしない。
+      // 元位置の再保存やプレースホルダーの再挿入を行うと復元情報が壊れるうえ、
+      // プレーヤーの再追加によるDOM移動を動画監視側が「削除」と誤認してしまう
+      if (player.parentElement === document.body && player.classList.contains('comfort-mode-video-container')) {
+        return;
+      }
+
       // 元のスタイルを保存
       const computedStyle = window.getComputedStyle(player);
       originalVideoStyles.set(player, {
@@ -843,6 +956,10 @@ function maximizeVideo(video: HTMLVideoElement): void {
     if (!player) {
       player = document.getElementById(playerId);
     }
+    // 既に最大化済み（body直下へ移動済み）の場合は何もしない（YouTube経路と同じ理由）
+    if (player && player.parentElement === document.body && player.classList.contains('comfort-mode-video-container')) {
+      return;
+    }
     if (player && player.parentElement) {
       const computedStyle = window.getComputedStyle(player);
       originalVideoStyles.set(player, {
@@ -873,6 +990,13 @@ function maximizeVideo(video: HTMLVideoElement): void {
     }
   } else {
     // 他のサイトでは動画要素を直接拡大
+
+    // 既に最大化済み（body直下へ移動済み）の場合は何もしない。
+    // 再実行すると元位置の記録が最大化後の状態で上書きされ、復元できなくなる
+    if (video.parentElement === document.body && video.classList.contains('comfort-mode-exempt')) {
+      return;
+    }
+
     console.log('[Comfortable Video] Moving video to body to escape stacking context');
 
     // 元の親要素と位置を記憶
@@ -904,7 +1028,7 @@ function maximizeVideo(video: HTMLVideoElement): void {
 
     // Prime Video字幕オーバーレイも一緒にbodyに移動
     const captionsOverlay = findPrimeCaptionsOverlay();
-    if (captionsOverlay && captionsOverlay.parentElement) {
+    if (captionsOverlay && captionsOverlay.parentElement && captionsOverlay.parentElement !== document.body) {
       originalCaptionsParent = {
         parent: captionsOverlay.parentElement,
         nextSibling: captionsOverlay.nextSibling
@@ -992,15 +1116,16 @@ function startVideoPlaybackMonitoring(): void {
             controlsDisableTimer = setTimeout(() => {
               disableVideoControls();
               controlsDisableTimer = null;
-            }, CONTROLS_DISABLE_TIME);
+            }, settings.controlsDisableTime);
           }
         }
       }
     });
 
     // 動画が停止した場合は無効化タイマーをキャンセル
+    // （pausedControlsEnabled がオフの場合は、停止中も無効化タイマーを継続する）
     video.addEventListener('pause', () => {
-      if (controlsDisableTimer) {
+      if (settings.pausedControlsEnabled && controlsDisableTimer) {
         clearTimeout(controlsDisableTimer);
         controlsDisableTimer = null;
       }
@@ -1112,7 +1237,8 @@ function handleMouseMove(event: MouseEvent): void {
   });
 
   // 動画停止中の場合は常にコントロールを有効化
-  if (videoPaused && !isVideoControlsEnabled) {
+  // （pausedControlsEnabled がオフの場合は、停止中も通常のホバー検出で有効化する）
+  if (videoPaused && settings.pausedControlsEnabled && !isVideoControlsEnabled) {
     enableVideoControls();
   }
 
@@ -1140,12 +1266,12 @@ function handleMouseMove(event: MouseEvent): void {
     }
   } else {
     // 動画から離れた場合（動画停止中は無効化しない）
-    if (isVideoControlsEnabled && !controlsDisableTimer && !videoPaused) {
+    if (isVideoControlsEnabled && !controlsDisableTimer && !(videoPaused && settings.pausedControlsEnabled)) {
       // コントロールが有効で、まだタイマーが設定されていない場合
       controlsDisableTimer = setTimeout(() => {
         disableVideoControls();
         controlsDisableTimer = null;
-      }, CONTROLS_DISABLE_TIME);
+      }, settings.controlsDisableTime);
     }
   }
 
@@ -1153,7 +1279,7 @@ function handleMouseMove(event: MouseEvent): void {
   if (isInVideoBottomArea) {
     // 動画下部にカーソルがある場合、タイマーを開始（停止中は即座に有効化）
     if (!isVideoControlsEnabled) {
-      if (videoPaused) {
+      if (videoPaused && settings.pausedControlsEnabled) {
         // 停止中は即座に有効化
         enableVideoControls();
       } else {
@@ -1162,7 +1288,7 @@ function handleMouseMove(event: MouseEvent): void {
           cursorTimer = setTimeout(() => {
             enableVideoControls();
             cursorTimer = null;
-          }, HOVER_DETECTION_TIME);
+          }, settings.hoverDetectionTime);
         }
       }
     }
@@ -1289,9 +1415,17 @@ function checkVideoNearEnd(): void {
   }
 }
 
-// 解除ボタンの透明度を更新（CSSで管理）
+// 解除ボタンの透明度を更新する
+// 動画エリア外では設定値（exitButtonOpacity）を解除ボタンの透明度として適用する。
+// 動画エリア内ではインライン指定を外し、SCSS側の状態別スタイル（ホバー時の強調）に従う
 function updateExitButtonOpacity(isInVideoArea: boolean): void {
-  // スタイルはSCSSで管理されるため、この関数は何もしない
+  if (!exitButton) return;
+
+  if (isInVideoArea) {
+    exitButton.style.opacity = '';
+  } else {
+    exitButton.style.opacity = String(settings.exitButtonOpacity / 100);
+  }
 }
 
 // 解除ボタンを表示する関数
@@ -1305,6 +1439,9 @@ function showExitButton(): void {
   exitButton.addEventListener('click', disableComfortModeByUser);
 
   document.body.appendChild(exitButton);
+
+  // 表示直後の透明度を設定値で初期化する（初期状態は動画エリア外として扱う）
+  updateExitButtonOpacity(lastIsInVideoArea);
 }
 
 // 独自のコントロールUIを表示する関数
@@ -1499,7 +1636,7 @@ function showCustomControls(): void {
       const isMouseInVideoArea = lastMouseX >= rect.left && lastMouseX <= rect.right &&
                                   lastMouseY >= rect.top && lastMouseY <= rect.bottom;
 
-      const hideDelay = isMouseInVideoArea ? CONTROLS_DISABLE_TIME : CONTROLS_HIDE_DELAY;
+      const hideDelay = isMouseInVideoArea ? settings.controlsDisableTime : CONTROLS_HIDE_DELAY;
       controlsHideOnMouseLeaveTimer = setTimeout(() => {
         if (customControls && currentActiveVideo && !currentActiveVideo.paused) {
           setCustomControlsHidden(true);
@@ -1597,7 +1734,7 @@ function resetControlsAutoHide(): void {
         if (customControls) {
           setCustomControlsHidden(true);
         }
-      }, CONTROLS_DISABLE_TIME);
+      }, settings.controlsDisableTime);
     }
   }
 }
@@ -2268,7 +2405,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // オプションページからの設定更新メッセージを処理
   if (message.action === 'settingsUpdated') {
-    // 必要に応じて設定を反映（現在は基本的な実装のため省略）
+    if (message.settings) {
+      settings = { ...DEFAULT_SETTINGS, ...message.settings } as ComfortModeSettings;
+      applySettings();
+    } else {
+      void loadSettings();
+    }
     sendResponse({ success: true });
   }
 });
@@ -2280,17 +2422,39 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-// ウィンドウサイズ変更時に動画サイズを調整
+// ウィンドウサイズ変更時の処理
+// 最大化済みの動画の表示サイズはCSSクラス（100vw/100vh）で決まるため、
+// リサイズにも自動で追随する。ここで最大化済みの動画に maximizeVideo を
+// 再実行すると、プレーヤーの再追加によるDOM移動を動画監視側が「動画の削除」と
+// 誤認し、快適モードが自動解除されてしまうため、再実行しない
 window.addEventListener('resize', () => {
   if (isComfortModeActive) {
     const videos = document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>;
     videos.forEach(video => {
+      if (video === currentActiveVideo || video.classList.contains('comfort-mode-video')) {
+        return;
+      }
       if (video.videoWidth > 0 && video.videoHeight > 0) {
         maximizeVideo(video);
       }
     });
   }
 });
+
+// 設定変更を監視する（オプションページでの保存・リセットに全タブで追随するため、
+// アクティブなタブへのメッセージだけでなく storage の変更でも反映する）
+if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'sync') return;
+    const hasSettingsChange = Object.keys(DEFAULT_SETTINGS).some((key) => key in changes);
+    if (hasSettingsChange) {
+      void loadSettings();
+    }
+  });
+}
+
+// 起動時に設定を読み込む
+void loadSettings();
 
 // 初期化処理
 console.log('[Comfortable Video] Content script loaded', {
@@ -2349,7 +2513,11 @@ function startVideoWatcher(): void {
             const element = node as Element;
             // 削除された要素がアクティブな動画要素を含んでいるかチェック
             if (element === currentActiveVideo || element.contains(currentActiveVideo)) {
-              disableComfortMode();
+              // バッチ適用後の時点で動画が文書内に残っている場合は、
+              // 削除ではなく同一バッチ内での付け替え（移動）なので解除しない
+              if (!document.contains(currentActiveVideo)) {
+                disableComfortMode();
+              }
             }
           }
         });
@@ -2429,6 +2597,8 @@ try {
   (window as any).__disableComfortMode = disableComfortMode;
   (window as any).__disableComfortModeByUser = disableComfortModeByUser;
   (window as any).__getIsComfortModeActive = () => isComfortModeActive;
+  (window as any).__getSettings = () => settings;
+  (window as any).__loadSettings = loadSettings;
 } catch (e) {
   // ignore
 }
@@ -2437,12 +2607,16 @@ declare global {
   interface Window {
     __addPrimeControlButton?: () => void;
     __findPrimeTopButtonsContainer?: () => Element | null;
+    __addYouTubeControlButton?: () => void;
+    __addTTFCControlButton?: () => void;
   }
 }
 
 try {
   window.__addPrimeControlButton = addPrimeControlButton;
   window.__findPrimeTopButtonsContainer = findPrimeTopButtonsContainer;
+  window.__addYouTubeControlButton = addYouTubeControlButton;
+  window.__addTTFCControlButton = addTTFCControlButton;
 } catch (e) {
   // ignore
 }

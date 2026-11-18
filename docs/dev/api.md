@@ -160,9 +160,12 @@ let originalVideoStyles: Map<HTMLVideoElement, StyleInfo> = new Map();
 ### 設定値
 
 ```typescript
-// タイミング設定
-const HOVER_DETECTION_TIME = 2000; // 2秒: コントロール有効化
-const CONTROLS_DISABLE_TIME = 3000; // 3秒: コントロール無効化
+// タイミング設定（オプションページで変更可能）
+// 起動時に chrome.storage.sync から読み込み、設定変更のたびに更新される
+// 現在の設定 `settings` を参照する（デフォルト値は DEFAULT_SETTINGS）
+settings.hoverDetectionTime // 2000ms: 下部ホバーからコントロール有効化まで
+settings.controlsDisableTime // 3000ms: 動画から離れてコントロール無効化まで
+const CONTROLS_HIDE_DELAY = 500; // 0.5秒: コントロールパネル外に出てから非表示まで（設定対象外）
 
 // 領域設定
 const BOTTOM_AREA_RATIO = 0.2; // 20%: 下部検出エリア
@@ -183,6 +186,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else {
       enableComfortMode();
     }
+    sendResponse({ success: true });
+  }
+
+  if (message.action === 'settingsUpdated') {
+    // オプションページからの設定更新を現在の状態へ反映する
+    // （storage の変更イベント chrome.storage.onChanged でも同様に反映される）
+    settings = { ...DEFAULT_SETTINGS, ...message.settings };
+    applySettings();
     sendResponse({ success: true });
   }
 });
