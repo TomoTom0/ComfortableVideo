@@ -112,11 +112,10 @@
   showVideoContextMenu: boolean,
   showInlineButton: boolean,
   pausedControlsEnabled: boolean,
-  enabledSites: {
-    youtube: boolean,
-    primeVideo: boolean,
-    allSites: boolean
-  },
+  enableYoutube: boolean,
+  enablePrimeVideo: boolean,
+  enableTTFC: boolean,
+  enableAllSites: boolean,
   exitButtonOpacity: number,       // 0-100
 }
 ```

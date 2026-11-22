@@ -22,6 +22,7 @@ tests/
         ├── prime-captions-exempt.test.ts  # Prime Video字幕オーバーレイのexemptクラス付与テスト
         ├── prime-top-buttons.test.ts      # Prime Video上部ボタン行へのコントロールボタン挿入テスト
         ├── captions-controls-offset.test.ts  # カスタムコントロール表示中の字幕オフセット同期テスト
+        ├── controls-hide-on-mouse-leave.test.ts  # マウス離脱監視によるコントロール自動非表示のテスト
         ├── vjs-captions.test.ts           # Video.js（TVer等）字幕表示要素の退避・復元テスト
         ├── settings.test.ts               # 設定の読み込み・反映（d-5）のテスト
         ├── settings-load.test.ts          # 起動時の設定読み込み（d-5）のテスト
@@ -48,6 +49,7 @@ tests/
 | `src/content.ts`（Prime Video上部ボタン） | `tests/unit/content/prime-top-buttons.test.ts` | `findPrimeTopButtonsContainer` / `addPrimeControlButton` の変更時 |
 | `src/content.ts`（Video.js字幕） | `tests/unit/content/vjs-captions.test.ts` | `maximizeVideo` / `disableComfortMode` の Video.js 字幕処理変更時 |
 | `src/content.ts`（字幕オフセット） | `tests/unit/content/captions-controls-offset.test.ts` | `setCustomControlsHidden` / `syncCaptionsOffsetWithControls` の変更時 |
+| `src/content.ts`（マウス離脱監視） | `tests/unit/content/controls-hide-on-mouse-leave.test.ts` | `handleMouseMove` / 再生開始時の初期タイマー / 一時停止時の監視停止の変更時 |
 | `src/content.ts`（設定の反映） | `tests/unit/content/settings.test.ts` / `tests/unit/content/settings-load.test.ts` | `loadSettings` / `applySettings` / `isSiteEnabled` / 設定で変わる挙動の変更時 |
 | `src/content.ts`（リサイズ・動画監視） | `tests/unit/content/resize-watcher.test.ts` / `tests/unit/content/resize-generic.test.ts` | リサイズハンドラ / `maximizeVideo` / `startVideoWatcher` の変更時 |
 
