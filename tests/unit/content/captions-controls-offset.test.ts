@@ -111,5 +111,6 @@ describe('字幕オフセットのTSとSCSSの契約', () => {
     expect(scss).toContain('body.comfort-mode-active.comfort-controls-visible');
     expect(scss).toContain('.comfort-mode-captions-wrapper');
     expect(scss).toContain('.comfort-mode-vjs-captions');
+    expect(scss).toContain('.ytp-caption-window-container');
   });
 });

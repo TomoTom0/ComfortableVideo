@@ -306,6 +306,16 @@ body.comfort-mode-active {
     z-index: $z-index-captions !important;
     pointer-events: none !important;
   }
+
+  /* YouTube字幕を前面に表示 */
+  /* 字幕コンテナはプレイヤー内に残るが、プレイヤー内の動画コンテナにも
+     .comfort-mode-video-container（z-index: $z-index-video）が付与されるため、
+     字幕コンテナ（z-index: auto）のままでは字幕が動画の下に隠れてしまう。
+     字幕用のz-indexでプレイヤー内の動画より前面に出す。バーとの重なりは
+     下のオフセットルールで別途逃がす */
+  .ytp-caption-window-container {
+    z-index: $z-index-captions !important;
+  }
 }
 
 /* カスタムコントロール表示中は、字幕がコントロールバーと重ならないよう上に逃がす */
@@ -316,7 +326,8 @@ body.comfort-mode-active.comfort-controls-visible {
   .atvwebplayersdk-captions-overlay,
   [class*="captions-overlay"],
   .comfort-mode-captions-wrapper,
-  .comfort-mode-vjs-captions {
+  .comfort-mode-vjs-captions,
+  .ytp-caption-window-container {
     translate: 0 -150px;
   }
 }
