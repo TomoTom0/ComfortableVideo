@@ -20,7 +20,8 @@ LANG=ja_JP.UTF-8 xvfb-run -a -s "-screen 0 1400x1000x24" node scripts/screenshot
 | `options-page.png` | オプションページ全体 |
 | `comfort-mode.png` | YouTube 公開動画（Big Buck Bunny）で快適モード ON・コントロール非表示 |
 | `comfort-controls.png` | 快適モード＋一時停止でカスタムコントロール表示 |
-| `context-menu.png` | 動画上の右クリックメニュー（「Comfortable Video」項目）。ページ内撮影ではブラウザ標準メニューが写らないため X 画面ごとキャプチャする |
+| `site-controls.png` | 状態確認用（docs 未使用）。元サイトのコントロールバー有効化を試みた際の撮影で、現行 YouTube では `.ytp-chrome-bottom` が `display: none` のためバーは写らない |
+| `context-menu.png` | 動画上の右クリックメニュー（「Comfortable Video」親項目）。ページ内撮影ではブラウザ標準メニューが写らないため X 画面ごとキャプチャする。サブメニューの展開は合成マウス/キー操作では再現できず未撮影 |
 
 ## docs への配置
 

@@ -6,8 +6,10 @@
  *
  * 撮影対象:
  *  1. オプションページ全体 (options-page.png)
- *  2. YouTube 公開動画で快適モード ON + カスタムコントロール表示 (comfort-mode.png)
- *  3. 動画上の右クリック (ブラウザ標準) メニュー (context-menu.png, X 画面キャプチャ)
+ *  2. YouTube 公開動画で快適モード ON・コントロール非表示 (comfort-mode.png)
+ *  3. 快適モード＋一時停止でカスタムコントロール表示 (comfort-controls.png)
+ *  4. 元サイトのコントロールバー有効化の状態確認 (site-controls.png, docs 未使用: 現行 YouTube ではバーが display:none のため写らない)
+ *  5. 動画上の右クリック (ブラウザ標準) メニュー (context-menu.png, X 画面キャプチャ)。サブメニューの展開は合成マウス/キー操作では再現できず、親項目の表示まで
  *
  * 出力先: tmp/screenshots/ (webp 化と docs への配置は別途行う)
  * 実行: LANG=ja_JP.UTF-8 xvfb-run -a -s "-screen 0 1400x1000x24" node scripts/screenshots/capture.js
@@ -83,20 +85,11 @@ async function main() {
     });
     console.log('video:', JSON.stringify(videoInfo));
 
-    // 診断: 全ターゲットと YouTube プレーヤー内ボタンの有無
-    const allTargets = await browser.targets();
-    allTargets.forEach((t, i) => console.log('TARGET', i, t.type(), t.url().slice(0, 90)));
-    const inlineBtn = await page.evaluate(() => {
-      const b = document.querySelector('.comfort-mode-button');
-      return b ? { found: true, title: b.title, cls: b.className } : { found: false };
-    });
-    console.log('inline button:', JSON.stringify(inlineBtn));
-
     // Service Worker 経由で背景スクリプトと同じメッセージを送信
-    const swSession = await sw.createCDPSession();
-    await swSession.send('Runtime.enable');
     // 注: manifest に tabs 権限が無いため tab.url は取得できない。
     // 全タブへ順に送信し、応答 (success) があったタブを対象とする。
+    const swSession = await sw.createCDPSession();
+    await swSession.send('Runtime.enable');
     const toggleExpr = `(async () => {
       const tabs = await chrome.tabs.query({});
       const attempts = [];
@@ -128,29 +121,9 @@ async function main() {
       if (s.comfortVideo) break;
     }
 
-    // メッセージで有効化できていなければ、プレーヤー内の公式ボタンをクリックする
-    let activated = await page.evaluate(
-      () => !!document.querySelector('.comfort-mode-video')
-    );
-    if (!activated) {
-      const btn = await page.$('.comfort-mode-button');
-      if (btn) {
-        await page.mouse.move(640, 700); // プレーヤーコントロールを表示
-        await sleep(800);
-        await btn.click();
-        console.log('inline button clicked');
-        await sleep(2000);
-      } else {
-        console.log('inline button not found for fallback click');
-      }
-    }
-
     const state = await page.evaluate(() => ({
       comfortVideo: !!document.querySelector('.comfort-mode-video'),
       controls: !!document.querySelector('#comfort-mode-custom-controls'),
-      controlsHidden: document
-        .querySelector('#comfort-mode-custom-controls')
-        ?.classList.contains('hidden'),
       exitBtn: !!document.querySelector('#comfort-mode-exit-button'),
     }));
     console.log('comfort state:', JSON.stringify(state));
@@ -164,7 +137,7 @@ async function main() {
       results.comfort = 'ok';
       console.log('comfort-mode.png saved');
 
-      // --- 2b. 一時停止してカスタムコントロール表示 ---
+      // --- 3. 一時停止してカスタムコントロール表示 ---
       await page.evaluate(() => {
         const v = document.querySelector('video');
         if (v) v.pause();
@@ -183,34 +156,70 @@ async function main() {
       await page.screenshot({ path: path.join(OUT, 'comfort-controls.png') });
       results.controls = 'ok';
       console.log('comfort-controls.png saved');
-      // 再生に戻す (右クリックメニューの見た目を通常状態にするため)
+
+      // --- 4. 元サイトのコントロールバー有効化 (下部20%に2秒ホバー) ---
       await page.evaluate(() => {
         const v = document.querySelector('video');
         if (v) v.play().catch(() => {});
       });
       await sleep(800);
-
-      // --- 3. 右クリックメニュー (X 画面ごと撮影) ---
-      // YouTube は 1 回目の右クリックで独自メニューを出すため 2 回行う
-      await page.mouse.click(640, 400, { button: 'right' });
-      await sleep(800);
-      await page.mouse.click(640, 400, { button: 'right' });
-      await sleep(1200);
-      try {
-        execSync(`import -window root "${path.join(OUT, 'context-menu.png')}"`, {
-          env: process.env,
-          timeout: 15000,
-        });
-        results.contextMenu = 'captured (要目視確認)';
-        console.log('context-menu.png saved (X capture)');
-      } catch (e) {
-        results.contextMenu = 'failed: ' + e.message;
-        console.log('context-menu capture failed:', e.message);
-      }
-      await page.mouse.click(100, 100); // メニューを閉じる
+      // 下部20%エリアのクリックで即座に有効化される経路を使う
+      await page.mouse.click(640, 760);
+      await sleep(500);
+      // YouTube 側コントロールは無操作で自動非表示になるため、小さく動かして即撮影する
+      await page.mouse.move(660, 758);
+      await sleep(300);
+      const ytpState = await page.evaluate(() => {
+        const bar = document.querySelector('.ytp-chrome-bottom');
+        if (!bar) return { found: false };
+        const cs = getComputedStyle(bar);
+        return { found: true, opacity: cs.opacity, visibility: cs.visibility, display: cs.display };
+      });
+      console.log('ytp chrome-bottom state:', JSON.stringify(ytpState));
+      results.ytpState = ytpState;
+      await page.screenshot({ path: path.join(OUT, 'site-controls.png') });
+      results.siteControls = 'ok';
+      console.log('site-controls.png saved');
     } else {
       results.comfort = 'failed: comfort mode not activated';
     }
+
+    // --- 5. 右クリックメニュー (X 画面ごと撮影) ---
+    // 快適モードの成否に依らず撮影する (開始導線の記録のため)。
+    // YouTube は 1 回目の右クリックで独自メニューを出すため 2 回行う。
+    await page.bringToFront();
+    // メニュー全体とサブメニューが画面内に収まるよう、動画の上寄りで右クリックする
+    await page.mouse.click(300, 150, { button: 'right' });
+    await sleep(800);
+    await page.mouse.click(300, 150, { button: 'right' });
+    await sleep(1200);
+    // 「Comfortable Video」親項目までキーボードで移動してサブメニューを展開する。
+    // (マウスホバー座標はメニュー高さでずれるため、キー操作の方が再現性が高い)
+    // 動画メニューの項目順: ループ / すべてのコントロールを表示 / 動画を新しいタブで開く /
+    // 動画フレームに名前を付けて保存 / 名前を付けて動画を保存 / 動画フレームをコピー /
+    // 動画アドレスをコピー / ピクチャー イン ピクチャー / 画像検索でこの動画を検索する /
+    // Comfortable Video / 検証
+    for (let i = 0; i < 10; i++) {
+      await page.keyboard.press('ArrowDown');
+      await sleep(90);
+    }
+    await page.keyboard.press('ArrowRight');
+    await sleep(1000);
+    // キー操作で展開しない場合に備え、親項目 (メニュー上端+約265px) にもホバーする
+    await page.mouse.move(500, 415);
+    await sleep(900);
+    try {
+      execSync(`import -window root "${path.join(OUT, 'context-menu.png')}"`, {
+        env: process.env,
+        timeout: 15000,
+      });
+      results.contextMenu = 'captured (要目視確認)';
+      console.log('context-menu.png saved (X capture)');
+    } catch (e) {
+      results.contextMenu = 'failed: ' + e.message;
+      console.log('context-menu capture failed:', e.message);
+    }
+    await page.mouse.click(100, 100); // メニューを閉じる
     await optPage.close().catch(() => {});
   } finally {
     await browser.close();
