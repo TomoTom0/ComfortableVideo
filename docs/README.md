@@ -33,6 +33,7 @@ Chrome Web Store公開用の資料とドキュメント：
 ### `user/`
 ユーザー向けドキュメント：
 - `usage.md` - 使用方法
+- `images/` - usage.md 用スクリーンショット（撮影方法は `scripts/screenshots/README.md`）
 
 ## ドキュメント管理方針
 

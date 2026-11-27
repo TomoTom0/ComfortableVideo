@@ -90,6 +90,17 @@ YouTubeの動画が快適モードで最大化され、クリーンで集中を�
 ### スクリーンショット5：コンテキストメニュー統合
 クイックアクセスのための「快適動画モードを切り替え」オプションを含む右クリックコンテキストメニュー。
 
+### 撮影済みファイル
+
+実画面を撮影済みのスクリーンショットは `docs/user/images/` にあります（撮影方法は `scripts/screenshots/README.md` 参照）。
+
+- スクリーンショット1（YouTube快適モード）: `docs/user/images/comfort-mode.webp`
+- スクリーンショット3（カスタムコントロールオーバーレイ）: `docs/user/images/comfort-controls.webp`
+- スクリーンショット4（オプションページ）: `docs/user/images/options-page.webp`
+- スクリーンショット5（コンテキストメニュー統合）: `docs/user/images/context-menu.webp`
+
+スクリーンショット2（コントロール表示）は、スクリーンショット3と同じカスタムコントロールの表示画面のため、`comfort-controls.webp` を充てます。
+
 ## サポート情報
 
 - サポートURL: https://github.com/TomoTom0/ComfortableVideo

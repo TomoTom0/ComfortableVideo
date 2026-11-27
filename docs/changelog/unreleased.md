@@ -49,7 +49,8 @@
 
 ## Changes
 
-（変更内容をここに記載）
+- 利用者向けドキュメントへ実画面のスクリーンショットを追加
+  - `docs/user/usage.md` に快適モード表示、カスタムコントロール、右クリックメニュー、オプションページの画像（`docs/user/images/`、webp）を埋め込み、`docs/chrome-store/store-listing.md` に撮影済みファイルの一覧を追記した。撮影は `scripts/screenshots/capture.js`（Puppeteer + Xvfb、日本語 UI）で行う
 
 ## Performance
 
